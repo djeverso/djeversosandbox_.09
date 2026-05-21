@@ -136,6 +136,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; f
     <div class="dd-panel" id="qtr-panel"></div>
   </div>
   <div class="toolbar-sep"></div>
+  <span class="filter-label">Sprint:</span>
+  <div class="dd-wrapper" id="spr-wrapper">
+    <button class="dd-btn" id="spr-btn">All sprints ▾</button>
+    <div class="dd-panel" id="spr-panel"></div>
+  </div>
+  <div class="toolbar-sep"></div>
   <span class="filter-label">Group Owner:</span>
   <div class="dd-wrapper" id="owner-wrapper">
     <button class="dd-btn" id="owner-btn">All owners ▾</button>
@@ -189,7 +195,7 @@ function parseDate(s) {
 }
 function fmtShort(d) {
   if (!d) return '';
-  return (d.getMonth()+1) + '/' + d.getDate();
+  return (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
 }
 
 // ── Sprint system ─────────────────────────────────────────────
@@ -229,7 +235,7 @@ function dateToX(d) {
 
 // ── State ─────────────────────────────────────────────────────
 const THIS_YEAR = new Date().getFullYear();
-const state = { levelMax: 3, owners: new Set(), programs: new Set(), initiatives: new Set(), projects: new Set(), years: new Set([THIS_YEAR]), quarters: new Set(), showDeps: false, swimlane: false };
+const state = { levelMax: 3, owners: new Set(), programs: new Set(), initiatives: new Set(), projects: new Set(), years: new Set([THIS_YEAR]), quarters: new Set(), sprints: new Set(), showDeps: false, swimlane: false };
 
 // ── Unique values ─────────────────────────────────────────────
 const allPrograms = [...new Set(GANTT_DATA.map(r => r.program).filter(Boolean))].sort();
@@ -315,6 +321,70 @@ function rowOverlapsQuarters(r, quarters, years) {
   return false;
 }
 
+// ── Sprint helpers ────────────────────────────────────────────
+// Sprint key = "YYYY.NN" where YYYY is the year of the sprint's END date.
+function sprintEndDate(idx) {
+  const d = sprintStart(idx);
+  d.setDate(d.getDate() + 13);
+  return d;
+}
+function sprintKey(idx) {
+  const end = sprintEndDate(idx);
+  const y = end.getFullYear();
+  const n = ((idx % 26) + 26) % 26 + 1;
+  return y + '.' + String(n).padStart(2, '0');
+}
+
+// All sprint indices visible in the timeline
+function allSprintIndices() {
+  const idxs = [];
+  for (let i = 0; i < SPRINT_COUNT; i++) idxs.push(startSprintIdx + i);
+  return idxs;
+}
+
+// Sprint keys whose year and/or quarter constraints pass the current Year+Quarter filters
+function visibleSprintKeys() {
+  const activeYears = state.years.size > 0 ? [...state.years] : allYears;
+  return allSprintIndices().filter(idx => {
+    const end   = sprintEndDate(idx);
+    const start = sprintStart(idx);
+    const endY  = end.getFullYear();
+    // Year constraint: sprint's end-date year must be in selected years
+    if (!activeYears.includes(endY)) return false;
+    // Quarter constraint: sprint must overlap any selected quarter in any active year
+    if (state.quarters.size > 0) {
+      let overlaps = false;
+      for (const y of activeYears) {
+        for (const q of state.quarters) {
+          const months = QUARTER_MONTHS[q];
+          const qStart = new Date(y, months[0], 1);
+          const qEnd   = new Date(y, months[2] + 1, 0);
+          if (start <= qEnd && end >= qStart) { overlaps = true; break; }
+        }
+        if (overlaps) break;
+      }
+      if (!overlaps) return false;
+    }
+    return true;
+  }).map(idx => sprintKey(idx));
+}
+
+// Does a row overlap any of the selected sprint keys?
+function rowOverlapsSprints(r, sprints) {
+  const s = parseDate(r.startDate || r.endDate);
+  const e = parseDate(r.endDate   || r.startDate);
+  if (!s || !e) return false;
+  for (let i = 0; i < SPRINT_COUNT; i++) {
+    const idx = startSprintIdx + i;
+    const key = sprintKey(idx);
+    if (!sprints.has(key)) continue;
+    const ss = sprintStart(idx);
+    const se = sprintEndDate(idx);
+    if (s <= se && e >= ss) return true;
+  }
+  return false;
+}
+
 // ── Generic dropdown builder ──────────────────────────────────
 function buildDropdown(panelId, allId, items, onUpdate) {
   const panel = document.getElementById(panelId);
@@ -347,6 +417,7 @@ buildDropdown('tp-panel',   'tp-all',   allPrograms,    updateProgramState);
 buildDropdown('init-panel', 'init-all', allInitiatives, updateInitiativeState);
 buildDropdown('proj-panel', 'proj-all', allProjects,    updateProjectState);
 buildDropdown('owner-panel','own-all',  allOwners,      updateOwnerState);
+rebuildSprintDropdown();
 
 // ── Year dropdown (no "All" option; must always have ≥1 selected) ─
 (function() {
@@ -373,6 +444,7 @@ function updateYearState() {
   document.getElementById('yr-btn').textContent =
     checked.length === allYears.length ? 'All years ▾' :
     checked.length === 1 ? checked[0] + ' ▾' : checked.join(', ') + ' ▾';
+  rebuildSprintDropdown();
   render();
 }
 
@@ -413,6 +485,48 @@ function updateQuarterState() {
   state.quarters = checked.length === total ? new Set() : new Set(checked);
   document.getElementById('qtr-btn').textContent =
     state.quarters.size === 0 ? 'All quarters ▾' : checked.join(', ') + ' ▾';
+  rebuildSprintDropdown();
+  render();
+}
+
+// ── Sprint dropdown ───────────────────────────────────────────
+function rebuildSprintDropdown() {
+  const keys = visibleSprintKeys();
+  const panel = document.getElementById('spr-panel');
+  panel.innerHTML = '';
+  const allOpt = document.createElement('div'); allOpt.className = 'dd-opt';
+  allOpt.innerHTML = `<input type="checkbox" id="spr-all" checked><label for="spr-all"><strong>All</strong></label>`;
+  panel.appendChild(allOpt);
+  const divider = document.createElement('div'); divider.className = 'dd-divider';
+  panel.appendChild(divider);
+  keys.forEach((key, i) => {
+    const d = document.createElement('div'); d.className = 'dd-opt';
+    const id = `spr-opt-${i}`;
+    d.innerHTML = `<input type="checkbox" id="${id}" value="${escHtml(key)}" checked><label for="${id}">${escHtml(key)}</label>`;
+    panel.appendChild(d);
+  });
+  const allChk = panel.querySelector('#spr-all');
+  allChk.addEventListener('change', () => {
+    panel.querySelectorAll('input[value]').forEach(c => c.checked = allChk.checked);
+    updateSprintState();
+  });
+  panel.querySelectorAll('input[value]').forEach(c => c.addEventListener('change', () => {
+    const anyUnchecked = [...panel.querySelectorAll('input[value]')].some(c => !c.checked);
+    allChk.checked = !anyUnchecked;
+    updateSprintState();
+  }));
+  // Reset sprint state to "all" whenever the list is rebuilt
+  state.sprints = new Set();
+  document.getElementById('spr-btn').textContent = 'All sprints ▾';
+}
+
+function updateSprintState() {
+  const panel = document.getElementById('spr-panel');
+  const all     = [...panel.querySelectorAll('input[value]')];
+  const checked = all.filter(c => c.checked).map(c => c.value);
+  state.sprints = checked.length === all.length ? new Set() : new Set(checked);
+  document.getElementById('spr-btn').textContent =
+    state.sprints.size === 0 ? 'All sprints ▾' : `${checked.length} sprint(s) ▾`;
   render();
 }
 
@@ -498,7 +612,7 @@ function updateOwnerState() {
 }
 
 // ── Dropdown toggle / close ───────────────────────────────────
-['tp', 'init', 'proj', 'yr', 'qtr', 'owner'].forEach(prefix => {
+['tp', 'init', 'proj', 'yr', 'qtr', 'spr', 'owner'].forEach(prefix => {
   const btn   = document.getElementById(`${prefix}-btn`);
   const panel = document.getElementById(`${prefix}-panel`);
   btn.addEventListener('click', e => { e.stopPropagation(); panel.classList.toggle('open'); });
@@ -552,6 +666,7 @@ function applyFilters() {
     if (state.owners.size > 0 && !state.owners.has(r.groupOwner)) return false;
     if (state.years.size > 0 && !rowOverlapsYears(r, state.years)) return false;
     if (state.quarters.size > 0 && !rowOverlapsQuarters(r, state.quarters, state.years)) return false;
+    if (state.sprints.size > 0 && !rowOverlapsSprints(r, state.sprints)) return false;
     return true;
   });
   filteredRows.forEach((r, i) => r._vi = i);
