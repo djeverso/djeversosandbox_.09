@@ -310,8 +310,7 @@ body {
 
 <div id="page-header">
   <h1>Owner Workload</h1>
-  <div class="subtitle">Star Content 2025-26 — Active items by Group Owner</div>
-  <span class="window-badge" id="window-label"></span>
+  <div class="subtitle">Star Content 2025-26 — Active (incomplete) items by Group Owner</div>
   <span class="updated-label">Updated 2026-05-21</span>
 </div>
 
@@ -530,9 +529,6 @@ function alertGridHtml(o) {
     </table>
   </div>`;
 }
-
-document.getElementById('window-label').textContent =
-  `As of ${fmtDateFull(TODAY_STR)} — active (incomplete) items only`;
 
 // ── State ─────────────────────────────────────────────────────
 const state = { levelMax: 3, programs: new Set(), initiatives: new Set(), projects: new Set() };
