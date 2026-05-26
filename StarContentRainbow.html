@@ -253,22 +253,44 @@ function dateToX(d) {
 }
 
 // ── Quarter column system (Roadmap mode) ──────────────────────
-// Returns array of {year, q, label, startDate, endDate, x, w, isToday}
+// Each quarter gets an equal share of the visible panel width so all
+// selected quarters fit on screen without horizontal scrolling.
+// Returns array of {year, q, startDate, endDate, x, w, isToday}
+let QTR_W = 0; // set when columns are built, based on panel width
+
 function buildQtrCols(years) {
   const cols = [];
   const activeYears = [...years].sort((a,b) => a-b);
+  const numCols = activeYears.length * 4;
+  const panelW  = rightPanel ? rightPanel.clientWidth : 800;
+  QTR_W = Math.max(160, Math.floor(panelW / numCols));
+  let xi = 0;
   activeYears.forEach(y => {
-    ['Q1','Q2','Q3','Q4'].forEach((q, qi) => {
+    ['Q1','Q2','Q3','Q4'].forEach(q => {
       const months = QUARTER_MONTHS[q];
       const s = new Date(y, months[0], 1);
       const e = new Date(y, months[2] + 1, 0);
-      const x = dateToX(s);
-      const w = dateToX(new Date(e.getTime() + 86400000)) - x;
       const isToday = today >= s && today <= e;
-      cols.push({ year:y, q, label:`${y} ${q}`, startDate:s, endDate:e, x, w: Math.max(w, 0), isToday });
+      cols.push({ year:y, q, startDate:s, endDate:e, x: xi * QTR_W, w: QTR_W, isToday });
+      xi++;
     });
   });
   return cols;
+}
+
+// Map a date to an X pixel in roadmap (quarter) coordinates.
+function dateToXQtr(d) {
+  if (!d || currentQtrCols.length === 0) return null;
+  const first = currentQtrCols[0].startDate;
+  const last  = currentQtrCols[currentQtrCols.length - 1];
+  const totalMs = last.endDate.getTime() + 86400000 - first.getTime();
+  const totalPx = currentQtrCols.length * QTR_W;
+  return (d - first) / totalMs * totalPx;
+}
+
+// Active coordinate function — returns roadmap coords in roadmap mode, sprint coords otherwise.
+function activeX(d) {
+  return state.roadmapMode ? dateToXQtr(d) : dateToX(d);
 }
 
 let currentQtrCols = [];
@@ -278,8 +300,9 @@ function renderHeader() {
   header.innerHTML = '';
   if (state.roadmapMode) {
     currentQtrCols = buildQtrCols(state.years);
-    const totalW = currentQtrCols.reduce((s,c) => Math.max(s, c.x + c.w), 0);
-    header.style.width = Math.max(totalW, TOTAL_WIDTH) + 'px';
+    const totalW = currentQtrCols.length * QTR_W;
+    header.style.width    = totalW + 'px';
+    header.style.position = 'relative';
     currentQtrCols.forEach(col => {
       const el = document.createElement('div');
       el.className = 'qtr-col' + (col.isToday ? ' today-qtr' : '');
@@ -287,7 +310,6 @@ function renderHeader() {
       el.innerHTML = `<span class="qtr-num">${col.q}</span><span class="qtr-dates">${col.year}</span>`;
       header.appendChild(el);
     });
-    header.style.position = 'relative';
   } else {
     currentQtrCols = [];
     header.style.width = TOTAL_WIDTH + 'px';
@@ -985,7 +1007,7 @@ function render() {
 
   // Gantt body sizing
   const effectiveWidth = state.roadmapMode && currentQtrCols.length > 0
-    ? currentQtrCols.reduce((s,c) => Math.max(s, c.x + c.w), TOTAL_WIDTH)
+    ? currentQtrCols.length * QTR_W
     : TOTAL_WIDTH;
   ganttBody.style.width  = effectiveWidth + 'px';
   ganttBody.style.height = totalH + 'px';
@@ -1014,8 +1036,9 @@ function render() {
     if (r.lvl >= 3 && r.startDate && r.endDate) {
       const s = parseDate(r.startDate), e = parseDate(r.endDate);
       if (s && e) {
-        const x = dateToX(s);
-        const w = Math.max(3, dateToX(e) - x + (SPRINT_W / 14));
+        const x = activeX(s);
+        const dayPx = state.roadmapMode ? (QTR_W / 91) : (SPRINT_W / 14);
+        const w = Math.max(3, activeX(e) - x + dayPx);
         // In swimlane mode use the team color; otherwise use full groupOwner logic
         const color = state.swimlane ? (OWNER_COLORS[r._team] || '#94a3b8') : ownerColor(r.groupOwner);
         const pct    = r.pct != null ? r.pct : 0;
@@ -1070,18 +1093,17 @@ function render() {
 function renderGridLines(height) {
   ganttBody.querySelectorAll('.sprint-line').forEach(el => el.remove());
   if (state.roadmapMode) {
-    currentQtrCols.forEach(col => {
+    currentQtrCols.forEach((col, i) => {
       const line = document.createElement('div');
       line.className = 'sprint-line';
-      line.style.left   = col.x + 'px';
+      line.style.left   = (i * QTR_W) + 'px';
       line.style.height = height + 'px';
       ganttBody.appendChild(line);
     });
     if (currentQtrCols.length > 0) {
-      const last = currentQtrCols[currentQtrCols.length - 1];
       const line = document.createElement('div');
       line.className = 'sprint-line';
-      line.style.left   = (last.x + last.w) + 'px';
+      line.style.left   = (currentQtrCols.length * QTR_W) + 'px';
       line.style.height = height + 'px';
       ganttBody.appendChild(line);
     }
@@ -1104,10 +1126,10 @@ function renderTodayLine(height) {
     const lbl = document.createElement('div'); lbl.id = 'today-label'; lbl.textContent = 'Today';
     ganttBody.appendChild(tl); ganttBody.appendChild(lbl);
   }
-  const x = dateToX(today);
+  const x = activeX(today);
   tl.style.left  = x + 'px';
   tl.style.height = height + 'px';
-  document.getElementById('today-label').style.left = (x + 4) + 'px';
+  if (x != null) document.getElementById('today-label').style.left = (x + 4) + 'px';
 }
 
 // ── Dependency arrows ─────────────────────────────────────────
@@ -1197,7 +1219,7 @@ function renderDeps(rows) {
       renderHeader();
       render();
       requestAnimationFrame(() => {
-        const todayX = dateToX(today);
+        const todayX = activeX(today);
         if (todayX != null) rightPanel.scrollLeft = Math.max(0, todayX - rightPanel.offsetWidth / 2);
       });
     } else {
@@ -1303,7 +1325,7 @@ function escHtml(s) {
 // ── Init ──────────────────────────────────────────────────────
 render();
 requestAnimationFrame(() => {
-  const todayX = dateToX(today);
+  const todayX = activeX(today);
   if (todayX != null) rightPanel.scrollLeft = Math.max(0, todayX - rightPanel.offsetWidth / 2);
 });
 </script>
