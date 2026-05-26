@@ -238,7 +238,7 @@ const THIS_YEAR = new Date().getFullYear();
 const state = { levelMax: 3, owners: new Set(), programs: new Set(), initiatives: new Set(), projects: new Set(), years: new Set([THIS_YEAR]), quarters: new Set(), sprints: new Set(), showDeps: false, swimlane: false };
 
 // ── Unique values ─────────────────────────────────────────────
-const PINNED_LAST_PROGRAMS = ['JIRA RAINBOW – ACTIVE', 'Roadmap - Unscheduled'];
+const PINNED_LAST_PROGRAMS = ['JIRA RAINBOW - ACTIVE', 'Roadmap - Unscheduled'];
 const allPrograms = (() => {
   const raw = [...new Set(GANTT_DATA.map(r => r.program).filter(Boolean))].sort();
   const normal = raw.filter(p => !PINNED_LAST_PROGRAMS.includes(p));
@@ -659,7 +659,7 @@ document.getElementById('deps-check').addEventListener('change', e => {
 })();
 
 // ── Filter ────────────────────────────────────────────────────
-const PINNED_LAST_LVL1 = ['JIRA RAINBOW – ACTIVE', 'Roadmap - Unscheduled'];
+const PINNED_LAST_LVL1 = ['JIRA RAINBOW - ACTIVE', 'Roadmap - Unscheduled'];
 
 function pinnedOrder(r) {
   const name = r.lvl === 1 ? r.primary : r.parentLvl1;
