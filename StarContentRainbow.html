@@ -979,15 +979,17 @@ taskList.addEventListener('mouseover', e => {
   const row = e.target.closest('[data-ru-tooltip]');
   if (!row) { tooltip.style.display = 'none'; return; }
   const d = row.dataset;
+  const blank = '<span style="color:#9ca3af;font-style:italic">—</span>';
+  const v = s => s ? escHtml(s) : blank;
   tooltip.innerHTML = `
     <div class="tt-title">${escHtml(d.primary)}</div>
-    ${d.priority ? `<div class="tt-row"><span class="tt-lbl">Priority</span><span class="tt-val">${escHtml(d.priority)}</span></div>` : ''}
-    ${d.estimate ? `<div class="tt-row"><span class="tt-lbl">Estimate</span><span class="tt-val">${escHtml(d.estimate)}</span></div>` : ''}
-    ${d.start    ? `<div class="tt-row"><span class="tt-lbl">Start Date</span><span class="tt-val">${escHtml(d.start)}</span></div>` : ''}
-    ${d.end      ? `<div class="tt-row"><span class="tt-lbl">End Date</span><span class="tt-val">${escHtml(d.end)}</span></div>` : ''}
-    ${d.owner    ? `<div class="tt-row"><span class="tt-lbl">Group Owner</span><span class="tt-val">${escHtml(d.owner)}</span></div>` : ''}
-    ${d.depsRaw  ? `<div class="tt-row"><span class="tt-lbl">Dependency</span><span class="tt-val">${escHtml(d.depsRaw)}</span></div>` : ''}
-    ${d.details  ? `<div class="tt-details">${escHtml(d.details)}${(d.details || '').length >= 300 ? '…' : ''}</div>` : ''}
+    <div class="tt-row"><span class="tt-lbl">Priority</span><span class="tt-val">${v(d.priority)}</span></div>
+    <div class="tt-row"><span class="tt-lbl">Estimate</span><span class="tt-val">${v(d.estimate)}</span></div>
+    <div class="tt-row"><span class="tt-lbl">Start Date</span><span class="tt-val">${v(d.start)}</span></div>
+    <div class="tt-row"><span class="tt-lbl">End Date</span><span class="tt-val">${v(d.end)}</span></div>
+    <div class="tt-row"><span class="tt-lbl">Group Owner</span><span class="tt-val">${v(d.owner)}</span></div>
+    <div class="tt-row"><span class="tt-lbl">Dependency</span><span class="tt-val">${v(d.depsRaw)}</span></div>
+    ${d.details ? `<div class="tt-details">${escHtml(d.details)}${d.details.length >= 300 ? '…' : ''}</div>` : ''}
   `;
   tooltip.style.display = 'block';
 });
