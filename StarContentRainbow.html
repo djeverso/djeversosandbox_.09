@@ -843,20 +843,64 @@ function priorityBucket(r) {
 // work items under each of their content teams.
 function buildDisplayRows(filtered) {
   if (state.roadmapMode) {
-    // Roadmap mode: group Lvl 3 rows by priority; Lvl 1 and 2 pass through as normal
-    // Collect Lvl 1 + 2 header rows (they appear once at top)
-    const lvl12 = filtered.filter(r => r.lvl <= 2);
-    const lvl3  = filtered.filter(r => r.lvl === 3);
-    const display = [...lvl12];
-    // Sort Lvl 3 rows into priority buckets
-    const buckets = [[], [], [], [], []]; // Must,Should,Could,Won't,Unassigned
-    lvl3.forEach(r => buckets[priorityBucket(r)].push(r));
-    const bucketLabels = ['Must', 'Should', 'Could', "Won't", 'Priority Unassigned'];
-    buckets.forEach((rows, bi) => {
-      if (rows.length === 0) return;
-      display.push({ _isPriorityHeader: true, _label: bucketLabels[bi] });
-      rows.forEach(r => display.push(r));
+    const display = [];
+    const lvl1Rows = filtered.filter(r => r.lvl === 1);
+    const lvl2Rows = filtered.filter(r => r.lvl === 2);
+    const lvl3Rows = filtered.filter(r => r.lvl === 3);
+
+    // Walk filtered in sheet order to assign each Lvl 3 its nearest Lvl 2 parent
+    const lvl3ToLvl2 = {}; // rowNum → lvl2 row object
+    let curLvl2 = null;
+    filtered.forEach(r => {
+      if (r.lvl === 2) curLvl2 = r;
+      if (r.lvl === 3 && curLvl2) lvl3ToLvl2[r.rowNum] = curLvl2;
     });
+
+    // Helper: emit a group of Lvl 3 rows, nested under their Lvl 2 parents (in sheet order),
+    // optionally tagging each Lvl 3 with _team for bar coloring.
+    function emitNested(lvl3Subset, teamTag) {
+      const seenLvl2 = new Set();
+      const orderedLvl2Keys = [];
+      lvl3Subset.forEach(r => {
+        const p = lvl3ToLvl2[r.rowNum];
+        const key = p ? p.rowNum : null;
+        if (!seenLvl2.has(key)) { seenLvl2.add(key); orderedLvl2Keys.push(key); }
+      });
+      orderedLvl2Keys.forEach(key => {
+        const lvl2 = key != null ? filtered.find(r => r.rowNum === key) : null;
+        if (lvl2) display.push(lvl2);
+        lvl3Subset
+          .filter(r => { const p = lvl3ToLvl2[r.rowNum]; return (p ? p.rowNum : null) === key; })
+          .forEach(r => display.push(teamTag ? { ...r, _team: teamTag } : r));
+      });
+    }
+
+    // Lvl 1 row(s) always appear once at the top
+    lvl1Rows.forEach(r => display.push(r));
+
+    if (state.swimlane) {
+      // Roadmap + Content Only: group by content team, nest Lvl 2 under each team banner
+      TEAM_ORDER.forEach(team => {
+        const teamLvl3 = lvl3Rows.filter(r => {
+          const parts = (r.groupOwner || '').split(/[,\/]/).map(s => s.trim());
+          return parts.includes(team);
+        });
+        if (teamLvl3.length === 0) return;
+        display.push({ _isHeader: true, _team: team, _color: OWNER_COLORS[team] || '#94a3b8' });
+        emitNested(teamLvl3, team);
+      });
+    } else {
+      // Roadmap priority mode: group by priority, nest Lvl 2 under each priority banner
+      const buckets = [[], [], [], [], []]; // Must,Should,Could,Won't,Unassigned
+      lvl3Rows.forEach(r => buckets[priorityBucket(r)].push(r));
+      const bucketLabels = ['Must', 'Should', 'Could', "Won't", 'Priority Unassigned'];
+      buckets.forEach((rows, bi) => {
+        if (rows.length === 0) return;
+        display.push({ _isPriorityHeader: true, _label: bucketLabels[bi] });
+        emitNested(rows, null);
+      });
+    }
+
     display.forEach((r, i) => r._vi = i);
     return display;
   }
@@ -871,7 +915,6 @@ function buildDisplayRows(filtered) {
       return parts.includes(team);
     });
     if (teamRows.length === 0) return;
-    // header sentinel
     display.push({ _isHeader: true, _team: team, _color: OWNER_COLORS[team] || '#94a3b8' });
     teamRows.forEach(r => display.push({ ...r, _team: team }));
   });
