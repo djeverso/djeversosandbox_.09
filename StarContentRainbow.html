@@ -331,12 +331,14 @@ const state = { levelMax: 3, owners: new Set(), programs: new Set(), initiatives
 const LEVEL_OPTIONS = [ {label:'1–2', max:2}, {label:'1–3', max:3}, {label:'1–4', max:4}, {label:'All', max:99} ];
 
 // ── Unique values ─────────────────────────────────────────────
-const PINNED_LAST_PROGRAMS = ['JIRA | Issues', 'Roadmap | Planned'];
+const isJiraProgram    = p => /jira/i.test(p || '');
+const isRoadmapProgram = p => /roadmap/i.test(p || '');
 const allPrograms = (() => {
-  const raw = [...new Set(GANTT_DATA.map(r => r.program).filter(Boolean))].sort();
-  const normal = raw.filter(p => !PINNED_LAST_PROGRAMS.includes(p));
-  const pinned = PINNED_LAST_PROGRAMS.filter(p => raw.includes(p));
-  return [...normal, ...pinned];
+  const raw     = [...new Set(GANTT_DATA.map(r => r.program).filter(Boolean))].sort();
+  const normal  = raw.filter(p => !isJiraProgram(p) && !isRoadmapProgram(p));
+  const jira    = raw.filter(isJiraProgram);
+  const roadmap = raw.filter(isRoadmapProgram);
+  return [...normal, ...jira, ...roadmap];
 })();
 const allOwners = [...new Set(
   GANTT_DATA.flatMap(r => (r.groupOwner || '').split(/[,\/]/).map(o => o.trim()).filter(Boolean))
@@ -535,7 +537,7 @@ buildDropdown('init-panel', 'init-all', allInitiatives, updateInitiativeState);
 buildDropdown('proj-panel', 'proj-all', allProjects,    updateProjectState);
 buildDropdown('owner-panel','own-all',  allOwners,      updateOwnerState);
 
-// Build Program dropdown with "Roadmap | Planned" unchecked by default
+// Build Program dropdown — Roadmap programs unchecked by default
 (function() {
   const panel = document.getElementById('tp-panel');
   panel.innerHTML = '';
@@ -544,11 +546,10 @@ buildDropdown('owner-panel','own-all',  allOwners,      updateOwnerState);
   panel.appendChild(allOpt);
   const divider = document.createElement('div'); divider.className = 'dd-divider';
   panel.appendChild(divider);
-  const RU = 'Roadmap | Planned';
   allPrograms.forEach((item, i) => {
     const d = document.createElement('div'); d.className = 'dd-opt';
     const id = `tp-all-${i}`;
-    const checked = item === RU ? '' : ' checked';
+    const checked = isRoadmapProgram(item) ? '' : ' checked';
     d.innerHTML = `<input type="checkbox" id="${id}" value="${escHtml(item)}"${checked}><label for="${id}">${escHtml(item)}</label>`;
     panel.appendChild(d);
   });
@@ -800,12 +801,13 @@ document.getElementById('deps-check').addEventListener('change', e => {
 renderHeader();
 
 // ── Filter ────────────────────────────────────────────────────
-const PINNED_LAST_LVL1 = ['JIRA | Issues', 'Roadmap | Planned'];
-
+// Pinned-last ordering: JIRA programs second-to-last, Roadmap programs last.
 function pinnedOrder(r) {
   const name = r.lvl === 1 ? r.primary : r.parentLvl1;
-  const idx = PINNED_LAST_LVL1.indexOf(name);
-  return idx === -1 ? 0 : idx + 1;
+  if (!name) return 0;
+  if (isRoadmapProgram(name)) return 2;
+  if (isJiraProgram(name))    return 1;
+  return 0;
 }
 
 let filteredRows = [];
@@ -814,7 +816,7 @@ function applyFilters() {
     if (state.roadmapMode) {
       // Roadmap mode: fixed to Lvl 1-3 under "Roadmap | Planned", year filter still applies
       if (r.lvl === 0 || r.lvl > 3) return false;
-      if (r.program !== 'Roadmap | Planned') return false;
+      if (!isRoadmapProgram(r.program)) return false;
       if (state.years.size > 0 && !rowOverlapsYears(r, state.years)) return false;
       return true;
     }
@@ -832,20 +834,12 @@ function applyFilters() {
     return true;
   });
 
-  // Partition into normal sections and pinned sections, preserving internal order
-  const normalRows  = raw.filter(r => pinnedOrder(r) === 0);
-  const pinnedBuckets = {};
-  PINNED_LAST_LVL1.forEach(name => { pinnedBuckets[name] = []; });
-  raw.filter(r => pinnedOrder(r) > 0).forEach(r => {
-    const name = r.lvl === 1 ? r.primary : r.parentLvl1;
-    if (pinnedBuckets[name]) pinnedBuckets[name].push(r);
-  });
-  // Only include a pinned section if it has at least one visible row
-  const pinnedRows = PINNED_LAST_LVL1.flatMap(name =>
-    pinnedBuckets[name].length > 0 ? pinnedBuckets[name] : []
-  );
+  // Partition into normal sections and pinned sections (JIRA second-to-last, Roadmap last)
+  const normalRows = raw.filter(r => pinnedOrder(r) === 0);
+  const jiraRows   = raw.filter(r => pinnedOrder(r) === 1);
+  const roadmapRows= raw.filter(r => pinnedOrder(r) === 2);
 
-  filteredRows = [...normalRows, ...pinnedRows];
+  filteredRows = [...normalRows, ...jiraRows, ...roadmapRows];
   filteredRows.forEach((r, i) => r._vi = i);
   return filteredRows;
 }
@@ -987,7 +981,7 @@ function render() {
       const nameContent = (r.lvl >= 2 && r.detailsUrl)
         ? `<a href="${escHtml(r.detailsUrl)}" target="_blank" rel="noopener" title="${escHtml(r.primary)}">${escHtml(r.primary)}</a>`
         : escHtml(r.primary);
-      if (r.lvl === 3 && r.parentLvl1 === 'Roadmap | Planned') {
+      if (r.lvl === 3 && isRoadmapProgram(r.parentLvl1)) {
         d.dataset.ruTooltip   = '1';
         d.dataset.primary     = r.primary     || '';
         d.dataset.priority    = r.priority    || '';
