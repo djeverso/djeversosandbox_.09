@@ -36,8 +36,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; f
 .shortcut-btn { padding: 3px 9px; border-radius: 3px; border: 1px solid rgba(99,179,237,0.6); background: rgba(99,179,237,0.15); color: #93c5fd; cursor: pointer; font-size: 11px; white-space: nowrap; transition: background 0.15s; }
 .shortcut-btn:hover { background: rgba(99,179,237,0.28); }
 .shortcut-btn.active { background: rgba(99,179,237,0.35); border-color: #93c5fd; }
+.roadmap-btn { padding: 3px 9px; border-radius: 3px; border: 1px solid rgba(167,139,250,0.6); background: rgba(167,139,250,0.15); color: #c4b5fd; cursor: pointer; font-size: 11px; white-space: nowrap; transition: background 0.15s; }
+.roadmap-btn:hover { background: rgba(167,139,250,0.28); }
+.roadmap-btn.active { background: rgba(167,139,250,0.35); border-color: #c4b5fd; }
+.filter-group { display: flex; align-items: center; gap: 4px; }
+.filter-group > .filter-label { margin-right: 0; }
+.ctrl-locked { opacity: 0.38; pointer-events: none; }
 #updated-label { font-size: 11px; color: rgba(255,255,255,0.45); margin-left: auto; white-space: nowrap; }
 #row-count { font-size: 11px; color: rgba(255,255,255,0.45); white-space: nowrap; }
+
+/* ── Quarter-mode column header ──────────────────────────────── */
+.qtr-col { flex-shrink: 0; border-right: 1px solid #d1d5db; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 10px; color: #6b7280; background: #f8f9fa; }
+.qtr-col .qtr-num { font-weight: 700; font-size: 13px; color: #374151; }
+.qtr-col .qtr-dates { font-size: 9px; color: #9ca3af; margin-top: 1px; }
+.qtr-col.today-qtr { background: #fef9c3; }
+.qtr-col.today-qtr .qtr-num { color: #92400e; }
+
+/* ── Priority section header row ─────────────────────────────── */
+.priority-header { height: 28px; display: flex; align-items: center; padding: 0 10px; font-weight: 700; font-size: 10px; color: #374151; background: #e0e7ff; border-bottom: 1px solid #c7d2fe; letter-spacing: 0.06em; text-transform: uppercase; flex-shrink: 0; }
+.bar-row.priority-hdr { background: rgba(99,102,241,0.06); border-bottom: 1px solid #c7d2fe; }
 
 /* ── Chart layout ────────────────────────────────────────────── */
 #chart-container { display: flex; flex: 1; min-height: 0; }
@@ -100,57 +117,59 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; f
 <div id="toolbar">
   <h1>Star Content 2025-26</h1>
   <div class="toolbar-sep"></div>
-  <span class="filter-label">Levels:</span>
-  <button class="lvl-btn" data-max="2">1–2</button>
-  <button class="lvl-btn active" data-max="3">1–3</button>
-  <button class="lvl-btn" data-max="4">1–4</button>
-  <button class="lvl-btn" data-max="99">All</button>
-  <div class="toolbar-sep"></div>
-  <span class="filter-label">Program:</span>
-  <div class="dd-wrapper" id="tp-wrapper">
-    <button class="dd-btn" id="tp-btn">All programs ▾</button>
-    <div class="dd-panel" id="tp-panel"></div>
+  <div class="filter-group" id="lvl-group">
+    <span class="filter-label">Levels:</span>
+    <div class="dd-wrapper" id="lvl-wrapper">
+      <button class="dd-btn" id="lvl-btn">1–3 ▾</button>
+      <div class="dd-panel" id="lvl-panel"></div>
+    </div>
   </div>
   <div class="toolbar-sep"></div>
-  <span class="filter-label">Initiative:</span>
-  <div class="dd-wrapper" id="init-wrapper">
-    <button class="dd-btn" id="init-btn">All initiatives ▾</button>
-    <div class="dd-panel" id="init-panel"></div>
+  <div class="filter-group">
+    <span class="filter-label">Program:</span>
+    <div class="dd-wrapper" id="tp-wrapper">
+      <button class="dd-btn" id="tp-btn">Most programs ▾</button>
+      <div class="dd-panel" id="tp-panel"></div>
+    </div>
+    <div class="dd-wrapper" id="init-wrapper">
+      <button class="dd-btn" id="init-btn">Initiative ▾</button>
+      <div class="dd-panel" id="init-panel"></div>
+    </div>
+    <div class="dd-wrapper" id="proj-wrapper">
+      <button class="dd-btn" id="proj-btn">Project ▾</button>
+      <div class="dd-panel" id="proj-panel"></div>
+    </div>
   </div>
   <div class="toolbar-sep"></div>
-  <span class="filter-label">Project:</span>
-  <div class="dd-wrapper" id="proj-wrapper">
-    <button class="dd-btn" id="proj-btn">All projects ▾</button>
-    <div class="dd-panel" id="proj-panel"></div>
+  <div class="filter-group">
+    <span class="filter-label">Year:</span>
+    <div class="dd-wrapper" id="yr-wrapper">
+      <button class="dd-btn" id="yr-btn">2026 ▾</button>
+      <div class="dd-panel" id="yr-panel"></div>
+    </div>
+    <div class="dd-wrapper" id="qtr-wrapper">
+      <button class="dd-btn" id="qtr-btn">All quarters ▾</button>
+      <div class="dd-panel" id="qtr-panel"></div>
+    </div>
   </div>
   <div class="toolbar-sep"></div>
-  <span class="filter-label">Year:</span>
-  <div class="dd-wrapper" id="yr-wrapper">
-    <button class="dd-btn" id="yr-btn">2026 ▾</button>
-    <div class="dd-panel" id="yr-panel"></div>
-  </div>
-  <div class="toolbar-sep"></div>
-  <span class="filter-label">Quarter:</span>
-  <div class="dd-wrapper" id="qtr-wrapper">
-    <button class="dd-btn" id="qtr-btn">All quarters ▾</button>
-    <div class="dd-panel" id="qtr-panel"></div>
-  </div>
-  <div class="toolbar-sep"></div>
-  <span class="filter-label">Sprint:</span>
   <div class="dd-wrapper" id="spr-wrapper">
-    <button class="dd-btn" id="spr-btn">All sprints ▾</button>
+    <button class="dd-btn" id="spr-btn">Sprint ▾</button>
     <div class="dd-panel" id="spr-panel"></div>
   </div>
   <div class="toolbar-sep"></div>
-  <span class="filter-label">Group Owner:</span>
-  <div class="dd-wrapper" id="owner-wrapper">
-    <button class="dd-btn" id="owner-btn">All owners ▾</button>
-    <div class="dd-panel" id="owner-panel"></div>
+  <div class="filter-group">
+    <span class="filter-label">Owner:</span>
+    <div class="dd-wrapper" id="owner-wrapper">
+      <button class="dd-btn" id="owner-btn">All ▾</button>
+      <div class="dd-panel" id="owner-panel"></div>
+    </div>
   </div>
   <div class="toolbar-sep"></div>
-  <button class="shortcut-btn" id="content-teams-btn">Content Teams Only</button>
+  <button class="shortcut-btn" id="content-teams-btn">Content Only</button>
+  <button class="roadmap-btn" id="roadmap-btn">Roadmap</button>
   <div class="toolbar-sep"></div>
-  <label id="deps-toggle"><input type="checkbox" id="deps-check"> Show dependencies</label>
+  <label id="deps-toggle"><input type="checkbox" id="deps-check"> Dependencies</label>
   <span id="updated-label">Updated 2026-05-26</span>
   <span id="row-count"></span>
 </div>
@@ -233,9 +252,61 @@ function dateToX(d) {
   return (d - TIMELINE_ORIGIN) / 86400000 * (SPRINT_W / 14);
 }
 
+// ── Quarter column system (Roadmap mode) ──────────────────────
+// Returns array of {year, q, label, startDate, endDate, x, w, isToday}
+function buildQtrCols(years) {
+  const cols = [];
+  const activeYears = [...years].sort((a,b) => a-b);
+  activeYears.forEach(y => {
+    ['Q1','Q2','Q3','Q4'].forEach((q, qi) => {
+      const months = QUARTER_MONTHS[q];
+      const s = new Date(y, months[0], 1);
+      const e = new Date(y, months[2] + 1, 0);
+      const x = dateToX(s);
+      const w = dateToX(new Date(e.getTime() + 86400000)) - x;
+      const isToday = today >= s && today <= e;
+      cols.push({ year:y, q, label:`${y} ${q}`, startDate:s, endDate:e, x, w: Math.max(w, 0), isToday });
+    });
+  });
+  return cols;
+}
+
+let currentQtrCols = [];
+
+function renderHeader() {
+  const header = document.getElementById('sprint-header');
+  header.innerHTML = '';
+  if (state.roadmapMode) {
+    currentQtrCols = buildQtrCols(state.years);
+    const totalW = currentQtrCols.reduce((s,c) => Math.max(s, c.x + c.w), 0);
+    header.style.width = Math.max(totalW, TOTAL_WIDTH) + 'px';
+    currentQtrCols.forEach(col => {
+      const el = document.createElement('div');
+      el.className = 'qtr-col' + (col.isToday ? ' today-qtr' : '');
+      el.style.cssText = `position:absolute; left:${col.x}px; width:${col.w}px; top:0; height:52px;`;
+      el.innerHTML = `<span class="qtr-num">${col.q}</span><span class="qtr-dates">${col.year}</span>`;
+      header.appendChild(el);
+    });
+    header.style.position = 'relative';
+  } else {
+    currentQtrCols = [];
+    header.style.width = TOTAL_WIDTH + 'px';
+    header.style.position = '';
+    for (let i = 0; i < SPRINT_COUNT; i++) {
+      const idx = startSprintIdx + i;
+      const col = document.createElement('div');
+      col.className = 'sprint-col' + (idx === todaySprintIdx ? ' today-sprint' : '');
+      col.style.width = SPRINT_W + 'px';
+      col.innerHTML = `<span class="sprint-num">${sprintLabel(idx)}</span><span class="sprint-date">${fmtShort(sprintStart(idx))}</span>`;
+      header.appendChild(col);
+    }
+  }
+}
+
 // ── State ─────────────────────────────────────────────────────
 const THIS_YEAR = new Date().getFullYear();
-const state = { levelMax: 3, owners: new Set(), programs: new Set(), initiatives: new Set(), projects: new Set(), years: new Set([THIS_YEAR]), quarters: new Set(), sprints: new Set(), showDeps: false, swimlane: false };
+const state = { levelMax: 3, owners: new Set(), programs: new Set(), initiatives: new Set(), projects: new Set(), years: new Set([THIS_YEAR]), quarters: new Set(), sprints: new Set(), showDeps: false, swimlane: false, roadmapMode: false };
+const LEVEL_OPTIONS = [ {label:'1–2', max:2}, {label:'1–3', max:3}, {label:'1–4', max:4}, {label:'All', max:99} ];
 
 // ── Unique values ─────────────────────────────────────────────
 const PINNED_LAST_PROGRAMS = ['JIRA RAINBOW - ACTIVE', 'Roadmap - Unscheduled'];
@@ -419,10 +490,71 @@ function buildDropdown(panelId, allId, items, onUpdate) {
   }));
 }
 
-buildDropdown('tp-panel',   'tp-all',   allPrograms,    updateProgramState);
+// ── Levels dropdown ───────────────────────────────────────────
+(function() {
+  const panel = document.getElementById('lvl-panel');
+  LEVEL_OPTIONS.forEach((opt, i) => {
+    const d = document.createElement('div'); d.className = 'dd-opt';
+    const id = `lvl-opt-${i}`;
+    const checked = opt.max === 3 ? ' checked' : '';
+    d.innerHTML = `<input type="radio" name="lvl-radio" id="${id}" value="${opt.max}"${checked}><label for="${id}">${opt.label}</label>`;
+    panel.appendChild(d);
+  });
+  panel.querySelectorAll('input[type=radio]').forEach(c => c.addEventListener('change', () => {
+    if (!state.roadmapMode) {
+      state.levelMax = +c.value;
+      document.getElementById('lvl-btn').textContent = LEVEL_OPTIONS.find(o => o.max === state.levelMax).label + ' ▾';
+      render();
+    }
+  }));
+})();
+
 buildDropdown('init-panel', 'init-all', allInitiatives, updateInitiativeState);
 buildDropdown('proj-panel', 'proj-all', allProjects,    updateProjectState);
 buildDropdown('owner-panel','own-all',  allOwners,      updateOwnerState);
+
+// Build Program dropdown with "Roadmap - Unscheduled" unchecked by default
+(function() {
+  const panel = document.getElementById('tp-panel');
+  panel.innerHTML = '';
+  const allOpt = document.createElement('div'); allOpt.className = 'dd-opt';
+  allOpt.innerHTML = `<input type="checkbox" id="tp-all"><label for="tp-all"><strong>All</strong></label>`;
+  panel.appendChild(allOpt);
+  const divider = document.createElement('div'); divider.className = 'dd-divider';
+  panel.appendChild(divider);
+  const RU = 'Roadmap - Unscheduled';
+  allPrograms.forEach((item, i) => {
+    const d = document.createElement('div'); d.className = 'dd-opt';
+    const id = `tp-all-${i}`;
+    const checked = item === RU ? '' : ' checked';
+    d.innerHTML = `<input type="checkbox" id="${id}" value="${escHtml(item)}"${checked}><label for="${id}">${escHtml(item)}</label>`;
+    panel.appendChild(d);
+  });
+  const allChk = panel.querySelector('#tp-all');
+  // Set "All" indeterminate since RU starts unchecked
+  const anyUnchecked = [...panel.querySelectorAll('input[value]')].some(c => !c.checked);
+  allChk.checked = !anyUnchecked;
+  allChk.indeterminate = anyUnchecked && [...panel.querySelectorAll('input[value]')].some(c => c.checked);
+  allChk.addEventListener('change', () => {
+    panel.querySelectorAll('input[value]').forEach(c => c.checked = allChk.checked);
+    allChk.indeterminate = false;
+    updateProgramState();
+  });
+  panel.querySelectorAll('input[value]').forEach(c => c.addEventListener('change', () => {
+    const chk = [...panel.querySelectorAll('input[value]')];
+    const anyU = chk.some(c => !c.checked);
+    const anyC = chk.some(c => c.checked);
+    allChk.checked = !anyU;
+    allChk.indeterminate = anyU && anyC;
+    updateProgramState();
+  }));
+  // Sync initial state: programs = all except RU
+  const checked = [...panel.querySelectorAll('input[value]:checked')].map(c => c.value);
+  const total   = [...panel.querySelectorAll('input[value]')].length;
+  state.programs = checked.length === total ? new Set() : new Set(checked);
+  document.getElementById('tp-btn').textContent = 'Most programs ▾';
+})();
+
 rebuildSprintDropdown();
 
 // ── Year dropdown (no "All" option; must always have ≥1 selected) ─
@@ -621,6 +753,7 @@ function updateOwnerState() {
 ['tp', 'init', 'proj', 'yr', 'qtr', 'spr', 'owner'].forEach(prefix => {
   const btn   = document.getElementById(`${prefix}-btn`);
   const panel = document.getElementById(`${prefix}-panel`);
+  if (!btn || !panel) return;
   btn.addEventListener('click', e => { e.stopPropagation(); panel.classList.toggle('open'); });
   panel.addEventListener('click', e => e.stopPropagation());
 });
@@ -628,15 +761,12 @@ document.addEventListener('click', () => {
   document.querySelectorAll('.dd-panel').forEach(p => p.classList.remove('open'));
 });
 
-// ── Level buttons ─────────────────────────────────────────────
-document.querySelectorAll('.lvl-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.lvl-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    state.levelMax = +btn.dataset.max;
-    render();
-  });
+// ── Dropdown toggle for levels ────────────────────────────────
+document.getElementById('lvl-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('lvl-panel').classList.toggle('open');
 });
+document.getElementById('lvl-panel').addEventListener('click', e => e.stopPropagation());
 
 // ── Deps toggle ───────────────────────────────────────────────
 document.getElementById('deps-check').addEventListener('change', e => {
@@ -644,19 +774,8 @@ document.getElementById('deps-check').addEventListener('change', e => {
   renderDeps(filteredRows);
 });
 
-// ── Sprint header (once) ──────────────────────────────────────
-(function() {
-  const header = document.getElementById('sprint-header');
-  header.style.width = TOTAL_WIDTH + 'px';
-  for (let i = 0; i < SPRINT_COUNT; i++) {
-    const idx = startSprintIdx + i;
-    const col = document.createElement('div');
-    col.className = 'sprint-col' + (idx === todaySprintIdx ? ' today-sprint' : '');
-    col.style.width = SPRINT_W + 'px';
-    col.innerHTML = `<span class="sprint-num">${sprintLabel(idx)}</span><span class="sprint-date">${fmtShort(sprintStart(idx))}</span>`;
-    header.appendChild(col);
-  }
-})();
+// ── Sprint/Quarter header ─────────────────────────────────────
+renderHeader();
 
 // ── Filter ────────────────────────────────────────────────────
 const PINNED_LAST_LVL1 = ['JIRA RAINBOW - ACTIVE', 'Roadmap - Unscheduled'];
@@ -670,6 +789,13 @@ function pinnedOrder(r) {
 let filteredRows = [];
 function applyFilters() {
   const raw = GANTT_DATA.filter(r => {
+    if (state.roadmapMode) {
+      // Roadmap mode: fixed to Lvl 1-3 under "Roadmap - Unscheduled", year filter still applies
+      if (r.lvl === 0 || r.lvl > 3) return false;
+      if (r.program !== 'Roadmap - Unscheduled') return false;
+      if (state.years.size > 0 && !rowOverlapsYears(r, state.years)) return false;
+      return true;
+    }
     // Level: lvl=0 (blank) rows are only shown when "All" is selected
     if (state.levelMax < 99) {
       if (r.lvl === 0 || r.lvl > state.levelMax) return false;
@@ -704,10 +830,36 @@ function applyFilters() {
 
 // ── Swimlane team order & colors ──────────────────────────────
 const TEAM_ORDER = ['OG','RAD','LCO','TTPM','AMT','STC'];
+const PRIORITY_ORDER = ['Must','Should','Could','Won\'t'];
+
+function priorityBucket(r) {
+  const p = (r.priority || '').trim();
+  if (!p) return 4;
+  const map = { 'Must':0, 'M':0, 'Should':1, 'S':1, 'Could':2, 'C':2, 'Won\'t':3, 'W':3 };
+  return map[p] !== undefined ? map[p] : 4;
+}
 
 // Build display rows: in swimlane mode, insert header rows and repeat
 // work items under each of their content teams.
 function buildDisplayRows(filtered) {
+  if (state.roadmapMode) {
+    // Roadmap mode: group Lvl 3 rows by priority; Lvl 1 and 2 pass through as normal
+    // Collect Lvl 1 + 2 header rows (they appear once at top)
+    const lvl12 = filtered.filter(r => r.lvl <= 2);
+    const lvl3  = filtered.filter(r => r.lvl === 3);
+    const display = [...lvl12];
+    // Sort Lvl 3 rows into priority buckets
+    const buckets = [[], [], [], [], []]; // Must,Should,Could,Won't,Unassigned
+    lvl3.forEach(r => buckets[priorityBucket(r)].push(r));
+    const bucketLabels = ['Must', 'Should', 'Could', "Won't", 'Priority Unassigned'];
+    buckets.forEach((rows, bi) => {
+      if (rows.length === 0) return;
+      display.push({ _isPriorityHeader: true, _label: bucketLabels[bi] });
+      rows.forEach(r => display.push(r));
+    });
+    display.forEach((r, i) => r._vi = i);
+    return display;
+  }
   if (!state.swimlane) {
     filtered.forEach((r, i) => r._vi = i);
     return filtered;
@@ -745,6 +897,7 @@ function ownerColor(groupOwner) {
 }
 
 function render() {
+  if (state.roadmapMode) renderHeader();
   applyFilters();
   const displayRows = buildDisplayRows(filteredRows);
   const totalH = displayRows.length * ROW_H;
@@ -754,7 +907,11 @@ function render() {
   const frag = document.createDocumentFragment();
   displayRows.forEach(r => {
     const d = document.createElement('div');
-    if (r._isHeader) {
+    if (r._isPriorityHeader) {
+      d.className = 'priority-header';
+      d.style.height = ROW_H + 'px';
+      d.textContent = r._label;
+    } else if (r._isHeader) {
       d.className = 'swimlane-header';
       d.style.cssText = `background:${r._color}; height:${ROW_H}px;`;
       d.textContent = r._team;
@@ -784,7 +941,10 @@ function render() {
   taskList.appendChild(frag);
 
   // Gantt body sizing
-  ganttBody.style.width  = TOTAL_WIDTH + 'px';
+  const effectiveWidth = state.roadmapMode && currentQtrCols.length > 0
+    ? currentQtrCols.reduce((s,c) => Math.max(s, c.x + c.w), TOTAL_WIDTH)
+    : TOTAL_WIDTH;
+  ganttBody.style.width  = effectiveWidth + 'px';
   ganttBody.style.height = totalH + 'px';
 
   // Bar layer
@@ -792,6 +952,12 @@ function render() {
   const barFrag = document.createDocumentFragment();
   displayRows.forEach(r => {
     const row = document.createElement('div');
+    if (r._isPriorityHeader) {
+      row.className = 'bar-row priority-hdr';
+      row.style.cssText = `top:${r._vi * ROW_H}px; height:${ROW_H}px;`;
+      barFrag.appendChild(row);
+      return;
+    }
     if (r._isHeader) {
       row.className = 'bar-row swimlane-hdr';
       row.style.cssText = `top:${r._vi * ROW_H}px; height:${ROW_H}px; background:${r._color}22;`;
@@ -826,7 +992,10 @@ function render() {
         bar.dataset.initiative = r.initiative || '';
         bar.dataset.project    = r.project    || '';
         bar.dataset.details = (r.details || '').substring(0, 200);
-        bar.innerHTML = `<div class="bar-fill" style="width:${pct*100}%"></div><span class="bar-label">${escHtml(r.primary)}</span>`;
+        const barLabel = (state.roadmapMode && r.estimate)
+          ? `${r.primary} (${r.estimate})`
+          : r.primary;
+        bar.innerHTML = `<div class="bar-fill" style="width:${pct*100}%"></div><span class="bar-label">${escHtml(barLabel)}</span>`;
         row.appendChild(bar);
       }
     }
@@ -838,11 +1007,11 @@ function render() {
   renderGridLines(totalH);
   renderTodayLine(totalH);
 
-  // Dep SVG sizing (skip dep arrows in swimlane mode — rows are duplicated)
+  // Dep SVG sizing (skip dep arrows in swimlane/roadmap mode)
   const svg = document.getElementById('dep-layer');
-  svg.setAttribute('width',  TOTAL_WIDTH);
+  svg.setAttribute('width',  effectiveWidth);
   svg.setAttribute('height', totalH);
-  if (state.swimlane) {
+  if (state.swimlane || state.roadmapMode) {
     [...svg.children].forEach(c => { if (c.tagName !== 'defs') c.remove(); });
   } else {
     renderDeps(filteredRows);
@@ -857,12 +1026,30 @@ function render() {
 // ── Grid lines ────────────────────────────────────────────────
 function renderGridLines(height) {
   ganttBody.querySelectorAll('.sprint-line').forEach(el => el.remove());
-  for (let i = 0; i <= SPRINT_COUNT; i++) {
-    const line = document.createElement('div');
-    line.className = 'sprint-line';
-    line.style.left   = (i * SPRINT_W) + 'px';
-    line.style.height = height + 'px';
-    ganttBody.appendChild(line);
+  if (state.roadmapMode) {
+    currentQtrCols.forEach(col => {
+      const line = document.createElement('div');
+      line.className = 'sprint-line';
+      line.style.left   = col.x + 'px';
+      line.style.height = height + 'px';
+      ganttBody.appendChild(line);
+    });
+    if (currentQtrCols.length > 0) {
+      const last = currentQtrCols[currentQtrCols.length - 1];
+      const line = document.createElement('div');
+      line.className = 'sprint-line';
+      line.style.left   = (last.x + last.w) + 'px';
+      line.style.height = height + 'px';
+      ganttBody.appendChild(line);
+    }
+  } else {
+    for (let i = 0; i <= SPRINT_COUNT; i++) {
+      const line = document.createElement('div');
+      line.className = 'sprint-line';
+      line.style.left   = (i * SPRINT_W) + 'px';
+      line.style.height = height + 'px';
+      ganttBody.appendChild(line);
+    }
   }
 }
 
@@ -911,7 +1098,7 @@ function renderDeps(rows) {
   });
 }
 
-// ── Content Teams Only shortcut ───────────────────────────────
+// ── Content Only shortcut ─────────────────────────────────────
 (function() {
   const btn = document.getElementById('content-teams-btn');
   let active = false;
@@ -921,7 +1108,6 @@ function renderDeps(rows) {
     state.swimlane = active;
     const panel = document.getElementById('owner-panel');
     if (active) {
-      // Check only owners that contain at least one content team abbreviation
       panel.querySelectorAll('input[value]').forEach(c => {
         const parts = c.value.split(/[,\/]/).map(s => s.trim());
         c.checked = parts.some(p => CONTENT_TEAMS.has(p));
@@ -933,6 +1119,53 @@ function renderDeps(rows) {
     const anyUnchecked = [...panel.querySelectorAll('input[value]')].some(c => !c.checked);
     allChk.checked = !anyUnchecked;
     updateOwnerState();
+  });
+})();
+
+// ── Roadmap mode button ───────────────────────────────────────
+(function() {
+  const btn = document.getElementById('roadmap-btn');
+  btn.addEventListener('click', () => {
+    state.roadmapMode = !state.roadmapMode;
+    btn.classList.toggle('active', state.roadmapMode);
+
+    const lvlGroup   = document.getElementById('lvl-group');
+    const tpWrapper  = document.getElementById('tp-wrapper');
+    const initWrapper= document.getElementById('init-wrapper');
+    const projWrapper= document.getElementById('proj-wrapper');
+
+    if (state.roadmapMode) {
+      // Lock Levels to 1-3 and Program to Roadmap - Unscheduled
+      lvlGroup.classList.add('ctrl-locked');
+      tpWrapper.classList.add('ctrl-locked');
+      initWrapper.classList.add('ctrl-locked');
+      projWrapper.classList.add('ctrl-locked');
+
+      // Set year to current year, quarters to all
+      const yrPanel = document.getElementById('yr-panel');
+      yrPanel.querySelectorAll('input[value]').forEach(c => { c.checked = +c.value === THIS_YEAR; });
+      updateYearState();
+      const qtrPanel = document.getElementById('qtr-panel');
+      qtrPanel.querySelectorAll('input[value]').forEach(c => { c.checked = true; });
+      qtrPanel.querySelector('#qtr-all').checked = true;
+      qtrPanel.querySelector('#qtr-all').indeterminate = false;
+      updateQuarterState();
+
+      renderHeader();
+      render();
+      requestAnimationFrame(() => {
+        const todayX = dateToX(today);
+        if (todayX != null) rightPanel.scrollLeft = Math.max(0, todayX - rightPanel.offsetWidth / 2);
+      });
+    } else {
+      // Unlock controls
+      lvlGroup.classList.remove('ctrl-locked');
+      tpWrapper.classList.remove('ctrl-locked');
+      initWrapper.classList.remove('ctrl-locked');
+      projWrapper.classList.remove('ctrl-locked');
+      renderHeader();
+      render();
+    }
   });
 })();
 
