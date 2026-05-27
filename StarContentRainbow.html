@@ -1202,24 +1202,15 @@ function renderDeps(rows) {
       lvlGroup.classList.add('ctrl-locked');
       tpWrapper.classList.add('ctrl-locked');
 
-      // Update Program button to show what it's locked to
+      // Override state.programs to the roadmap program so the existing cascade
+      // functions (rebuildInitiativeDropdown, rebuildProjectDropdown) scope correctly
+      const roadmapProgram = allPrograms.find(p => isRoadmapProgram(p)) || '';
+      state.programs = roadmapProgram ? new Set([roadmapProgram]) : new Set();
       document.getElementById('tp-btn').textContent = 'Roadmap | Planned ▾';
 
-      // Scope Initiative dropdown to roadmap initiatives only
-      const roadmapInits = [...new Set(
-        GANTT_DATA.filter(r => isRoadmapProgram(r.program)).map(r => r.initiative).filter(Boolean)
-      )].sort();
-      buildDropdown('init-panel', 'init-all', roadmapInits, updateInitiativeState);
-      state.initiatives = new Set();
-      document.getElementById('init-btn').textContent = 'All initiatives ▾';
-
-      // Scope Project dropdown to roadmap projects only
-      const roadmapProjs = [...new Set(
-        GANTT_DATA.filter(r => isRoadmapProgram(r.program)).map(r => r.project).filter(Boolean)
-      )].sort();
-      buildDropdown('proj-panel', 'proj-all', roadmapProjs, updateProjectState);
-      state.projects = new Set();
-      document.getElementById('proj-btn').textContent = 'All projects ▾';
+      // Rebuild Initiative and Project dropdowns via the normal cascade
+      rebuildInitiativeDropdown();
+      rebuildProjectDropdown();
 
       // Set year to current year, quarters to all
       const yrPanel = document.getElementById('yr-panel');
@@ -1242,12 +1233,11 @@ function renderDeps(rows) {
       lvlGroup.classList.remove('ctrl-locked');
       tpWrapper.classList.remove('ctrl-locked');
 
-      // Restore Program button and dropdowns to default state
-      rebuildInitiativeDropdown();
-      rebuildProjectDropdown();
-
+      // Restore program state from the panel checkboxes (which were never changed)
+      // and cascade-rebuild initiative/project dropdowns.
+      // renderHeader() must run first so sprint mode is active before render().
       renderHeader();
-      render();
+      updateProgramState();
     }
   });
 })();
