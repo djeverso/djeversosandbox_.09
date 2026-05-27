@@ -1305,8 +1305,8 @@ taskList.addEventListener('mouseover', e => {
     <div class="tt-row"><span class="tt-lbl">End Date</span><span class="tt-val">${v(d.end)}</span></div>
     <div class="tt-row"><span class="tt-lbl">Group Owner</span><span class="tt-val">${v(d.owner)}</span></div>
     <div class="tt-row"><span class="tt-lbl">Dependency</span><span class="tt-val">${v(d.depsRaw)}</span></div>
+    <div class="tt-row"><span class="tt-lbl">Details</span><span class="tt-val">${v(d.details)}${d.details && d.details.length >= 300 ? '…' : ''}</span></div>
     <div class="tt-row"><span class="tt-lbl">Risk Details</span><span class="tt-val">${v(d.riskDetails)}</span></div>
-    ${d.details ? `<div class="tt-details">${escHtml(d.details)}${d.details.length >= 300 ? '…' : ''}</div>` : ''}
   `;
   tooltip.style.display = 'block';
 });
