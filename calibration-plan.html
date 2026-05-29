@@ -631,7 +631,7 @@ function renderTimeline(rows) {
     // Both have dates: sort by start date descending (most recent first)
     const aKey = a.start ? monthKey(a.start.year, a.start.month) : (a.end ? monthKey(a.end.year, a.end.month) : 0);
     const bKey = b.start ? monthKey(b.start.year, b.start.month) : (b.end ? monthKey(b.end.year, b.end.month) : 0);
-    return bKey - aKey;
+    return aKey - bKey;
   });
 
   // Determine date range
