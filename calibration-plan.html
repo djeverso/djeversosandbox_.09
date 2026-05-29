@@ -17,17 +17,20 @@ body {
 #page-header {
   background: #1a1a2e;
   color: #fff;
-  padding: 18px 28px 14px;
+  padding: 7px 28px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
 }
-#page-header h1 { font-size: 20px; font-weight: 700; }
-#page-header .subtitle { font-size: 12px; color: rgba(255,255,255,0.55); }
-.header-meta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+#page-header h1 { font-size: 15px; font-weight: 700; white-space: nowrap; }
+#page-header .subtitle { font-size: 11px; color: rgba(255,255,255,0.45); white-space: nowrap; }
+.header-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
 .header-badge {
   font-size: 11px; background: rgba(255,255,255,0.12);
   border-radius: 4px; padding: 2px 8px; color: rgba(255,255,255,0.8);
+  white-space: nowrap;
 }
 
 /* ── Toolbar ── */
@@ -255,9 +258,6 @@ body {
   z-index: 2;
 }
 .tl-bar:hover { filter: brightness(1.12); z-index: 3; }
-.tl-bar.required   { background: #dc2626; }
-.tl-bar.bolstering { background: #d97706; }
-.tl-bar.tbd-bar    { background: #9ca3af; }
 .tl-bar.psycho-bar {
   background: #7c3aed;
   font-size: 9px;
@@ -320,7 +320,7 @@ body {
     <span class="header-badge" id="row-badge"></span>
     <a class="header-badge" style="color:rgba(255,255,255,0.7);text-decoration:none"
        href="https://illuminate.atlassian.net/wiki/spaces/CON/pages/19342884975/PK12+Item+Calibration+Tracking"
-       target="_blank">Open in Confluence ↗</a>
+       target="_blank">Confluence ↗</a>
   </div>
 </div>
 
@@ -367,8 +367,8 @@ body {
   <div class="tb-sep"></div>
   <span id="result-count"></span>
   <div id="view-toggle">
-    <button class="view-btn active" data-view="table">Table</button>
-    <button class="view-btn" data-view="timeline">Timeline</button>
+    <button class="view-btn" data-view="table">Table</button>
+    <button class="view-btn active" data-view="timeline">Timeline</button>
   </div>
 </div>
 
@@ -390,7 +390,7 @@ const ALL_COLS = ['priority','title','product','grade_band','item_count','cal_st
 
 // ── State ──────────────────────────────────────────────────────────────────
 const state = {
-  view: 'table',
+  view: 'timeline',
   priority: new Set(), title: new Set(), product: new Set(),
   platform: new Set(), recruitment: new Set(),
 };
@@ -618,8 +618,78 @@ const TODAY_KEY = monthKey(TODAY.getFullYear(), TODAY.getMonth() + 1);
 // 3 weeks ≈ 0.75 months in pixel terms
 const PSYCHO_MONTHS = 0.75;
 
+// Product color palette — assigned on first encounter, stable across renders
+const PRODUCT_COLORS = [
+  '#2563eb','#059669','#dc2626','#d97706','#7c3aed',
+  '#0891b2','#be185d','#65a30d','#ea580c','#6366f1',
+];
+const _productColorMap = {};
+let   _productColorIdx = 0;
+function productColor(product) {
+  const key = (product || '').trim().toLowerCase();
+  if (!_productColorMap[key]) {
+    _productColorMap[key] = PRODUCT_COLORS[_productColorIdx % PRODUCT_COLORS.length];
+    _productColorIdx++;
+  }
+  return _productColorMap[key];
+}
+
+function buildDataRow(r, start, end, minKey, totalMonths, chartWidth, todayX, gridHtml) {
+  const label  = r.product || r.title;
+  const grade  = r.grade_band || '';
+  const color  = productColor(r.product);
+  let barHtml  = '';
+
+  if (!start && !end) {
+    barHtml = `<div class="tl-tbd-label">Dates TBD</div>`;
+  } else {
+    const sk = start ? monthKey(start.year, start.month) : null;
+    const ek = end   ? monthKey(end.year,   end.month)   : null;
+    let leftPx, rightPx;
+    if (sk !== null && ek !== null) {
+      leftPx  = ((sk - minKey) / totalMonths) * chartWidth;
+      rightPx = (((ek - minKey) + 1) / totalMonths) * chartWidth;
+    } else if (sk !== null) {
+      leftPx  = ((sk - minKey) / totalMonths) * chartWidth;
+      rightPx = (((sk - minKey) + 4) / totalMonths) * chartWidth;
+    } else {
+      leftPx  = ((ek - minKey) / totalMonths) * chartWidth;
+      rightPx = (((ek - minKey) + 1) / totalMonths) * chartWidth;
+    }
+    const widthPx   = Math.max(rightPx - leftPx, 8);
+    const rowIdx    = ALL_ROWS.indexOf(r);
+    const hasTbdEnd = !end && start;
+    const barParts  = [r.product, r.grade_band, r.item_count].filter(Boolean);
+    const labelText = widthPx > 48 ? esc(barParts.join(' · ')) : '';
+    barHtml += `<div class="tl-bar"
+      style="left:${leftPx.toFixed(1)}px;width:${widthPx.toFixed(1)}px;background:${color}"
+      onmouseenter="showTipRow(event,${rowIdx})"
+      onmouseleave="hideTip()">${labelText}${hasTbdEnd ? '<span class="tl-tbd-end-label">tbd end</span>' : ''}</div>`;
+    const analysisWidth = PSYCHO_MONTHS * MONTH_PX;
+    if (ek !== null || hasTbdEnd) {
+      const anaLabel = analysisWidth > 36 ? 'Cal Analysis' : '';
+      barHtml += `<div class="tl-bar psycho-bar"
+        style="left:${rightPx.toFixed(1)}px;width:${analysisWidth.toFixed(1)}px"
+        onmouseenter="showTipPsycho(event)"
+        onmouseleave="hideTip()">${esc(anaLabel)}</div>`;
+    }
+  }
+
+  return `<tr class="tl-data-row">
+    <td class="tl-label-cell">
+      <div class="tl-label-product">${esc(label)}</div>
+      ${grade ? `<div class="tl-label-grade">${esc(grade)}</div>` : ''}
+      <div style="margin-top:2px">${renderPriorityPill(r.priority)}</div>
+    </td>
+    <td class="tl-bar-td">
+      <div class="tl-bar-row" style="width:${chartWidth}px">
+        ${gridHtml}${barHtml}
+      </div>
+    </td>
+  </tr>`;
+}
+
 function renderTimeline(rows) {
-  // Parse start/end for each row using timeline-specific fuzzy parser
   const parsedRows = rows.map(r => ({
     r,
     start: parseTimelineDate(r.cal_start, false),
@@ -628,17 +698,18 @@ function renderTimeline(rows) {
     const aHas = a.start || a.end ? 0 : 1;
     const bHas = b.start || b.end ? 0 : 1;
     if (aHas !== bHas) return aHas - bHas;
-    // Both have dates: sort by start date descending (most recent first)
     const aKey = a.start ? monthKey(a.start.year, a.start.month) : (a.end ? monthKey(a.end.year, a.end.month) : 0);
     const bKey = b.start ? monthKey(b.start.year, b.start.month) : (b.end ? monthKey(b.end.year, b.end.month) : 0);
     return aKey - bKey;
   });
 
-  // Determine date range
+  const datedRows = parsedRows.filter(p => p.start || p.end);
+  const tbdRows   = parsedRows.filter(p => !p.start && !p.end);
+
+  // Determine date range from dated rows only
   let minKey = monthKey(TODAY.getFullYear(), TODAY.getMonth()) - 1;
   let maxKey = monthKey(TODAY.getFullYear() + 1, TODAY.getMonth() + 1);
-
-  parsedRows.forEach(({start, end}) => {
+  datedRows.forEach(({start, end}) => {
     if (start) minKey = Math.min(minKey, monthKey(start.year, start.month) - 1);
     if (end)   maxKey = Math.max(maxKey, monthKey(end.year, end.month) + 2);
   });
@@ -647,11 +718,10 @@ function renderTimeline(rows) {
   const totalMonths = maxKey - minKey + 1;
   const chartWidth  = totalMonths * MONTH_PX;
 
-  // Today line x position
   const todayFrac = (TODAY_KEY - minKey + TODAY.getDate() / 31) / totalMonths;
   const todayX    = todayFrac * chartWidth;
 
-  // Month header HTML
+  // Month header
   let monthHeaderHtml = '<div class="tl-month-cells">';
   for (let k = minKey; k <= maxKey; k++) {
     const {year, month} = keyToYM(k);
@@ -662,71 +732,24 @@ function renderTimeline(rows) {
   }
   monthHeaderHtml += '</div>';
 
-  // Build table rows
-  let tbodyHtml = '';
+  // Shared grid HTML (reused per row)
+  let gridHtml = '';
+  for (let k = minKey; k <= maxKey; k++) {
+    const x = (k - minKey) * MONTH_PX;
+    gridHtml += `<div class="tl-grid-line" style="left:${x}px"></div>`;
+  }
+  gridHtml += `<div class="tl-today-line" style="left:${todayX.toFixed(1)}px"></div>`;
 
-  parsedRows.forEach(({r, start, end}) => {
-    const label  = r.product || r.title;
-    const grade  = r.grade_band || '';
-    const barCls = r.priority === 'Required' ? 'required' : 'bolstering';
+  // Dated rows tbody
+  const datedTbody = datedRows.map(({r, start, end}) =>
+    buildDataRow(r, start, end, minKey, totalMonths, chartWidth, todayX, gridHtml)
+  ).join('');
 
-    // Grid lines + today line
-    let gridHtml = '';
-    for (let k = minKey; k <= maxKey; k++) {
-      const x = (k - minKey) * MONTH_PX;
-      gridHtml += `<div class="tl-grid-line" style="left:${x}px"></div>`;
-    }
-    gridHtml += `<div class="tl-today-line" style="left:${todayX.toFixed(1)}px"></div>`;
-
-    let barHtml = '';
-
-    if (!start && !end) {
-      barHtml = `<div class="tl-tbd-label">Dates TBD</div>`;
-    } else {
-      // Positions
-      const sk = start ? monthKey(start.year, start.month) : null;
-      const ek = end   ? monthKey(end.year,   end.month)   : null;
-
-      let leftPx, rightPx;
-
-      if (sk !== null && ek !== null) {
-        leftPx  = ((sk - minKey) / totalMonths) * chartWidth;
-        rightPx = (((ek - minKey) + 1) / totalMonths) * chartWidth;
-      } else if (sk !== null) {
-        // Start only — extend ~4 months
-        leftPx  = ((sk - minKey) / totalMonths) * chartWidth;
-        rightPx = (((sk - minKey) + 4) / totalMonths) * chartWidth;
-      } else {
-        // End only — 1-month wide dot at end position
-        leftPx  = (((ek - minKey)) / totalMonths) * chartWidth;
-        rightPx = (((ek - minKey) + 1) / totalMonths) * chartWidth;
-      }
-
-      const widthPx   = Math.max(rightPx - leftPx, 8);
-      const rowIdx    = ALL_ROWS.indexOf(r);
-      const hasTbdEnd = !end && start;
-
-      const barParts = [r.product, r.grade_band, r.item_count].filter(Boolean);
-      const labelText = widthPx > 48 ? esc(barParts.join(' · ')) : '';
-      barHtml += `<div class="tl-bar ${barCls}"
-        style="left:${leftPx.toFixed(1)}px;width:${widthPx.toFixed(1)}px"
-        data-idx="${rowIdx}"
-        onmouseenter="showTipRow(event,${rowIdx})"
-        onmouseleave="hideTip()">${labelText}${hasTbdEnd ? '<span class="tl-tbd-end-label">tbd end</span>' : ''}</div>`;
-
-      // Always show purple Psy Calibration Analysis bar (3 weeks after end)
-      const analysisStart = ek !== null ? rightPx : rightPx;
-      const analysisWidth = PSYCHO_MONTHS * MONTH_PX;
-      if (ek !== null || hasTbdEnd) {
-        const anaLabel = analysisWidth > 36 ? 'Cal Analysis' : '';
-        barHtml += `<div class="tl-bar psycho-bar"
-          style="left:${rightPx.toFixed(1)}px;width:${analysisWidth.toFixed(1)}px"
-          onmouseenter="showTipPsycho(event)"
-          onmouseleave="hideTip()">${esc(anaLabel)}</div>`;
-      }
-    }
-
-    tbodyHtml += `<tr class="tl-data-row">
+  // TBD rows tbody (no chart area — just label column + grey text)
+  const tbdTbody = tbdRows.map(({r}) => {
+    const label = r.product || r.title;
+    const grade = r.grade_band || '';
+    return `<tr class="tl-data-row">
       <td class="tl-label-cell">
         <div class="tl-label-product">${esc(label)}</div>
         ${grade ? `<div class="tl-label-grade">${esc(grade)}</div>` : ''}
@@ -734,11 +757,21 @@ function renderTimeline(rows) {
       </td>
       <td class="tl-bar-td">
         <div class="tl-bar-row" style="width:${chartWidth}px">
-          ${gridHtml}${barHtml}
+          ${gridHtml}<div class="tl-tbd-label">Dates TBD</div>
         </div>
       </td>
     </tr>`;
+  }).join('');
+
+  // Build product legend from rows that have dates
+  const seenProducts = [];
+  datedRows.forEach(({r}) => {
+    const p = (r.product || '').trim();
+    if (p && !seenProducts.includes(p)) seenProducts.push(p);
   });
+  const productLegend = seenProducts.map(p =>
+    `<div class="tl-legend-item"><div class="tl-legend-swatch" style="background:${productColor(p)};border-radius:2px"></div> ${esc(p)}</div>`
+  ).join('');
 
   return `<div id="timeline-wrap">
     <div class="tl-scroll-container">
@@ -749,15 +782,19 @@ function renderTimeline(rows) {
             <th class="tl-header-chart"><div style="width:${chartWidth}px">${monthHeaderHtml}</div></th>
           </tr>
         </thead>
-        <tbody>${tbodyHtml}</tbody>
+        <tbody>${datedTbody}</tbody>
       </table>
     </div>
+    ${tbdTbody ? `<div style="border-top:1px solid #e2e5ea">
+      <table class="tl-table">
+        <tbody>${tbdTbody}</tbody>
+      </table>
+    </div>` : ''}
     <div class="tl-legend">
-      <div class="tl-legend-item"><div class="tl-legend-swatch" style="background:#dc2626;border-radius:2px"></div> Required</div>
-      <div class="tl-legend-item"><div class="tl-legend-swatch" style="background:#d97706;border-radius:2px"></div> Bolstering</div>
-      <div class="tl-legend-item"><div class="tl-legend-swatch" style="background:#7c3aed;border-radius:2px"></div> est. Psy Calibration Analysis</div>
+      ${productLegend}
+      <div class="tl-legend-item" style="margin-left:8px"><div class="tl-legend-swatch" style="background:#7c3aed;border-radius:2px"></div> Cal Analysis</div>
       <div class="tl-legend-item"><div style="width:2px;height:12px;background:#ef4444;display:inline-block;border-radius:1px"></div> Today</div>
-      <div style="margin-left:auto;font-size:10px;color:#9ca3af">Seasons mapped to calendar dates &nbsp;|&nbsp; Gray extension = TBD end date (~4 mo estimate)</div>
+      <div style="margin-left:auto;font-size:10px;color:#9ca3af">Seasons mapped to calendar dates &nbsp;|&nbsp; "tbd end" = ~4 mo estimate</div>
     </div>
   </div>`;
 }
