@@ -309,32 +309,6 @@ body {
 /* ── Empty ── */
 .empty-state { text-align: center; padding: 60px 0; color: #9ca3af; font-size: 13px; }
 
-/* ── Editable cells ── */
-.editable-cell {
-  cursor: text;
-  border-radius: 3px;
-  padding: 1px 3px;
-  margin: -1px -3px;
-  transition: background 0.1s;
-}
-.editable-cell:hover { background: #f0f4ff; outline: 1px dashed #93c5fd; }
-.editable-cell:focus {
-  outline: 2px solid #2563eb;
-  background: #fff;
-  border-radius: 3px;
-}
-.save-indicator {
-  display: inline-block; margin-left: 6px;
-  font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 3px;
-}
-.save-indicator.saving { background: #fef3c7; color: #92400e; }
-.save-indicator.saved  { background: #d1fae5; color: #065f46; }
-.save-indicator.error  { background: #fee2e2; color: #991b1b; }
-#edit-banner {
-  display: none; background: #dbeafe; border-bottom: 1px solid #93c5fd;
-  padding: 6px 28px; font-size: 11px; color: #1e40af;
-}
-#edit-banner.visible { display: block; }
 </style>
 </head>
 <body>
@@ -399,16 +373,12 @@ body {
   </div>
 </div>
 
-<div id="edit-banner">✏️ <strong>Edit mode</strong> — click any cell in the Table view to edit it. Changes save directly to Confluence when you press Enter or click away.</div>
 <div id="main-content"></div>
 <div id="tooltip"></div>
 
 <script>
 const ALL_ROWS  = [{"priority":"Required","title":"Active Items in Dynamic Calibration Field Test (Winter-Summer 2026):","product":"SR PK12","grade_band":"1-8","item_count":"82","cal_start":"Jan 2026","cal_end":"6/30/26","recruitment":"No","platform":"SR Enterprise","notes":"via PIE (MCQ Non-Audio) G1=5, G2=14, G3=4, G5=9, G7=19, G8=31"},{"priority":"Required","title":"Active Items in Dynamic Calibration Field Test (Winter-Summer 2026):","product":"SR PK12","grade_band":"High School","item_count":"433","cal_start":"Jan 2026","cal_end":"6/30/26","recruitment":"No","platform":"SR Enterprise","notes":"via PIE (MCQ Non-Audio) G9=124, G10=110, G11=107, G12=92"},{"priority":"Required","title":"Active Items in Dynamic Calibration Field Test (Winter-Summer 2026):","product":"SL PK12","grade_band":"1-5","item_count":"209","cal_start":"4/6/26","cal_end":"6/30/2026","recruitment":"No","platform":"SL Enterprise","notes":"via PIE (MCQ Non-Audio) G1=8, G2=33, G3=61, G4=42, G5=65"},{"priority":"Required","title":"Active Items in Dynamic Calibration Field Test (Winter-Summer 2026):","product":"SM PK12","grade_band":"K, HS","item_count":"327","cal_start":"Jan 2026","cal_end":"","recruitment":"Maybe?","platform":"SM Enterprise","notes":"via PIE: HS=126 via KAS: GK=12; HS=272 All MC item types. GK is Annapolis-style (audio enabled)"},{"priority":"Required","title":"Items to Field Test BTS 2026:","product":"SR PK12","grade_band":"PK","item_count":"79","cal_start":"Fall 2026 with Pilot","cal_end":"","recruitment":"Yes","platform":"LSY","notes":"Items have audio. Ready for Field Testing 3 Hotspot, 65 MCQ, and 11 MultiSelect"},{"priority":"Required","title":"Items Ready to Field Test Pending Recruitment:","product":"SL PK12","grade_band":"K-3","item_count":"GK - 471 G1 - 296 G2 - 177 G3 - 73","cal_start":"TBD","cal_end":"","recruitment":"Yes","platform":"Fixed form","notes":"Top Priority SL PK12 Must happen first to get items on SRS scale. Items to calibrate include new CQT and LSY TEI, MCQ with Audio, SELS migrated to calibrate on SRS scaled score, and Operational SRS as anchor items."},{"priority":"Required","title":"Items Ready to Field Test Pending Recruitment:","product":"SL PK12","grade_band":"PK","item_count":"235","cal_start":"TBD","cal_end":"","recruitment":"Yes","platform":"Fixed form","notes":"Second Priority SL PK12 We need K students to take the PK items in Fall 2026 to be anchor items on the PK forms. PK forms must be taken in the spring by PK students per psychometrics. This means calibration will be in spring 27."},{"priority":"Required","title":"Star Reading Spanish","product":"","grade_band":"2-5","item_count":"118 (no audio)","cal_start":"TBD, still under development","cal_end":"","recruitment":"No","platform":"SL Enterprise","notes":"Not yet ready"},{"priority":"Required","title":"Star Reading Spanish","product":"","grade_band":"3-8","item_count":"410","cal_start":"TBD, still under development","cal_end":"","recruitment":"No","platform":"SL Enterprise","notes":"Not yet ready"},{"priority":"Required","title":"Star Reading Spanish","product":"","grade_band":"K-4","item_count":"118 (audio)","cal_start":"TBD, still under development","cal_end":"","recruitment":"tbd","platform":"tbd","notes":"Not yet ready"},{"priority":"Required","title":"Star Math English","product":"","grade_band":"K-2","item_count":"0","cal_start":"n/a","cal_end":"","recruitment":"No","platform":"","notes":"See &ldquo;bolster&rdquo; counts below."},{"priority":"Required","title":"Star Math English","product":"","grade_band":"HS","item_count":"0","cal_start":"n/a","cal_end":"","recruitment":"Recruit high performing students, dynamic calibration will cover the rest","platform":"","notes":"Technically, HS item bank could support new BP, but still skill gaps could lead to downstream reporting issues See &ldquo;bolster&rdquo; notes below."},{"priority":"Required","title":"Star Math English","product":"","grade_band":"PK","item_count":"420","cal_start":"Spring 26","cal_end":"","recruitment":"Yes","platform":"Fixed forms","notes":"Forms not built yet. Form creation with anchor items needs to be done in partnership with Psychometrics. Anchor items will come from the &lsquo;Annapolis&rsquo; items calibrated in 2025."},{"priority":"Bolstering","title":"Star Reading English","product":"SR PK12","grade_band":"PK","item_count":"38","cal_start":"TBD","cal_end":"TBD","recruitment":"Maybe","platform":"LSY","notes":"Items have audio. In development 38 CQT"},{"priority":"Bolstering","title":"Star Reading English","product":"SR PK12","grade_band":"K-2","item_count":"128","cal_start":"TBD","cal_end":"TBD","recruitment":"No","platform":"LSY","notes":"Items have audio. In development 36 ClozeAssociation, 51 MC, 41 CQT GK=58, G1=34, G2=36"},{"priority":"Bolstering","title":"Star Reading English","product":"SR PK12","grade_band":"3","item_count":"10","cal_start":"TBD","cal_end":"TBD","recruitment":"No","platform":"LSY","notes":"10 additional new OrderedList items not yet calibrated or scored via LSY"},{"priority":"Bolstering","title":"Star Reading English","product":"SR PK12","grade_band":"1-7","item_count":"229+","cal_start":"TBD","cal_end":"TBD","recruitment":"No","platform":"SRE","notes":"via PIE (no Audio) G1=2, G2=64, G3=49, G4=8, G5=32, G6=52, G7=22"},{"priority":"Bolstering","title":"Star Math","product":"","grade_band":"PK","item_count":"TBD","cal_start":"","cal_end":"","recruitment":"","platform":"","notes":"pending calibration results"},{"priority":"Bolstering","title":"Star Math","product":"","grade_band":"K","item_count":"12","cal_start":"Jan 2026","cal_end":"","recruitment":"","platform":"","notes":""},{"priority":"Bolstering","title":"Star Math","product":"","grade_band":"K-5","item_count":"287","cal_start":"","cal_end":"","recruitment":"","platform":"","notes":"calibrate items with audio enabled; tutorial for new item types PIE to determine if they can force on audio, if so we can dynamically calibrate using PIE"},{"priority":"Bolstering","title":"Star Math","product":"","grade_band":"6-8","item_count":"TBD","cal_start":"","cal_end":"","recruitment":"","platform":"","notes":"need to complete standards gap analysis on key states"},{"priority":"Bolstering","title":"Star Math","product":"","grade_band":"HS","item_count":"315","cal_start":"Jan 2026","cal_end":"","recruitment":"Recruit high performing students, dynamic calibration will cover the rest","platform":"","notes":"In dynamic calibration: 126 LSY item play via PIE 189 KAS"},{"priority":"Bolstering","title":"Star Math","product":"","grade_band":"HS","item_count":"170","cal_start":"tbd","cal_end":"","recruitment":"Recruit high performing students, dynamic calibration will cover the rest","platform":"","notes":"LSY New item type, pending due to tutorial questions; Content rec is no tutorial needed and push to dynamic PIE calibration Spring 2026"},{"priority":"Bolstering","title":"Star Math","product":"","grade_band":"HS","item_count":"15","cal_start":"tbd","cal_end":"","recruitment":"","platform":"","notes":"Graphing items. Need HS tutorial and item type is not yet supported in PIE."}];
-const ROW_KEYS  = ["Active Items in Dynamic Calibration Field Test (Winter-Summer 2026):::1","Active Items in Dynamic Calibration Field Test (Winter-Summer 2026):::2","Active Items in Dynamic Calibration Field Test (Winter-Summer 2026):::3","Active Items in Dynamic Calibration Field Test (Winter-Summer 2026):::4","Items to Field Test BTS 2026:::1","Items Ready to Field Test Pending Recruitment:::1","Items Ready to Field Test Pending Recruitment:::2","Star Reading Spanish::1","Star Reading Spanish::2","Star Reading Spanish::3","Star Math English::1","Star Math English::2","Star Math English::3","Star Reading English::1","Star Reading English::2","Star Reading English::3","Star Reading English::4","Star Math::1","Star Math::2","Star Math::3","Star Math::4","Star Math::5","Star Math::6","Star Math::7"];
 const GENERATED = '2026-05-29';
-const EDITABLE  = false;
-const API_PORT  = 7432;
 
 const COL_LABELS = {
   priority:'Priority', title:'Table / Section', product:'Product',
@@ -607,8 +577,6 @@ function toggleNotes(idx) {
 }
 
 // ── Flat table renderer ────────────────────────────────────────────────────
-const EDITABLE_COLS = new Set(['product','grade_band','item_count','cal_start','cal_end','recruitment','platform','notes']);
-
 function renderTable(rows) {
   const cols = ALL_COLS;
   const thead = `<thead><tr>${cols.map(c =>
@@ -616,44 +584,22 @@ function renderTable(rows) {
   ).join('')}</tr></thead>`;
 
   const tbody = rows.map((r, idx) => {
-    const globalIdx = ALL_ROWS.indexOf(r);
-    const rowKey    = ROW_KEYS[globalIdx] || '';
     const prCls = r.priority === 'Required' ? 'priority-required'
                 : r.priority === 'Bolstering' ? 'priority-bolstering' : '';
     const cells = cols.map(c => {
-      const editable = EDITABLE && EDITABLE_COLS.has(c);
       let val = '';
       switch (c) {
         case 'priority':    val = renderPriorityPill(r.priority); break;
         case 'title':       val = `<div class="cell-title">${esc(r.title)}</div>`; break;
-        case 'product':
-          val = editable
-            ? makeEditableCell(r.product || '', rowKey, 'product')
-            : (r.product ? `<span class="pill pill-gray">${esc(r.product)}</span>` : '');
-          break;
-        case 'grade_band':
-          val = editable ? makeEditableCell(r.grade_band || '', rowKey, 'grade_band') : esc(r.grade_band);
-          break;
-        case 'item_count':
-          val = editable ? makeEditableCell(r.item_count || '', rowKey, 'item_count') : esc(r.item_count);
-          break;
-        case 'cal_start':
-          val = editable ? makeEditableCell(r.cal_start || '', rowKey, 'cal_start') : renderDate(r.cal_start);
-          break;
-        case 'cal_end':
-          val = editable ? makeEditableCell(r.cal_end || '', rowKey, 'cal_end') : renderDate(r.cal_end);
-          break;
-        case 'recruitment':
-          val = editable ? makeEditableCell(r.recruitment || '', rowKey, 'recruitment') : renderRecruitment(r.recruitment);
-          break;
-        case 'platform':
-          val = editable ? makeEditableCell(r.platform || '', rowKey, 'platform')
-            : (r.platform ? `<span class="pill pill-teal">${esc(r.platform)}</span>` : '<span style="color:#d1d5db">—</span>');
-          break;
-        case 'notes':
-          val = editable ? makeEditableCell(r.notes || '', rowKey, 'notes') : renderNotes(r.notes, idx);
-          break;
-        default: val = esc(r[c] || '');
+        case 'product':     val = r.product ? `<span class="pill pill-gray">${esc(r.product)}</span>` : ''; break;
+        case 'grade_band':  val = esc(r.grade_band); break;
+        case 'item_count':  val = esc(r.item_count); break;
+        case 'cal_start':   val = renderDate(r.cal_start); break;
+        case 'cal_end':     val = renderDate(r.cal_end); break;
+        case 'recruitment': val = renderRecruitment(r.recruitment); break;
+        case 'platform':    val = r.platform ? `<span class="pill pill-teal">${esc(r.platform)}</span>` : '<span style="color:#d1d5db">—</span>'; break;
+        case 'notes':       val = renderNotes(r.notes, idx); break;
+        default:            val = esc(r[c] || '');
       }
       return `<td>${val}</td>`;
     }).join('');
@@ -903,42 +849,6 @@ function moveTip(e) {
 function hideTip() { tip.style.display = 'none'; }
 document.addEventListener('mousemove', e => { if (tip.style.display !== 'none') moveTip(e); });
 
-// ── Editable cell save ────────────────────────────────────────────────────
-function saveCell(el, rowKey, fieldKey) {
-  const newValue = el.innerText.trim();
-  const ind = document.createElement('span');
-  ind.className = 'save-indicator saving';
-  ind.textContent = 'saving…';
-  el.parentNode.appendChild(ind);
-
-  fetch(`http://127.0.0.1:${API_PORT}/save`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ row_key: rowKey, field_key: fieldKey, value: newValue }),
-  })
-  .then(r => r.json())
-  .then(data => {
-    ind.className = 'save-indicator ' + (data.ok ? 'saved' : 'error');
-    ind.textContent = data.ok ? 'saved ✓' : 'error: ' + (data.error || '?');
-    if (data.ok) setTimeout(() => ind.remove(), 2500);
-  })
-  .catch(err => {
-    ind.className = 'save-indicator error';
-    ind.textContent = 'network error';
-  });
-}
-
-function makeEditableCell(text, rowKey, fieldKey) {
-  const safeText = esc(text);
-  return `<span class="editable-cell"
-    contenteditable="true"
-    data-row-key="${esc(rowKey)}"
-    data-field="${esc(fieldKey)}"
-    onblur="saveCell(this, this.dataset.rowKey, this.dataset.field)"
-    onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"
-  >${safeText}</span>`;
-}
-
 // ── Main render ────────────────────────────────────────────────────────────
 function render() {
   const rows = applyFilters();
@@ -955,10 +865,6 @@ function render() {
 // ── Init ───────────────────────────────────────────────────────────────────
 document.getElementById('generated-badge').textContent = `Generated ${GENERATED}`;
 document.getElementById('row-badge').textContent       = `${ALL_ROWS.length} rows across ${new Set(ALL_ROWS.map(r=>r.title)).size} tables`;
-if (EDITABLE) {
-  const banner = document.getElementById('edit-banner');
-  if (banner) banner.classList.add('visible');
-}
 render();
 </script>
 </body>
