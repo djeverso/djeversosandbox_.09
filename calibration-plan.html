@@ -624,7 +624,11 @@ function renderTimeline(rows) {
     r,
     start: parseTimelineDate(r.cal_start, false),
     end:   parseTimelineDate(r.cal_end,   true),
-  }));
+  })).sort((a, b) => {
+    const aHas = a.start || a.end ? 0 : 1;
+    const bHas = b.start || b.end ? 0 : 1;
+    return aHas - bHas;
+  });
 
   // Determine date range
   let minKey = monthKey(TODAY.getFullYear(), TODAY.getMonth()) - 1;
