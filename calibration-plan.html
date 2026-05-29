@@ -750,14 +750,14 @@ function renderTimeline(rows) {
     const label = r.product || r.title;
     const grade = r.grade_band || '';
     return `<tr class="tl-data-row">
-      <td class="tl-label-cell">
-        <div class="tl-label-product">${esc(label)}</div>
+      <td class="tl-label-cell" style="background:#f9fafb">
+        <div class="tl-label-product" style="color:#6b7280">${esc(label)}</div>
         ${grade ? `<div class="tl-label-grade">${esc(grade)}</div>` : ''}
         <div style="margin-top:2px">${renderPriorityPill(r.priority)}</div>
       </td>
-      <td class="tl-bar-td">
+      <td class="tl-bar-td" style="background:#f9fafb">
         <div class="tl-bar-row" style="width:${chartWidth}px">
-          ${gridHtml}<div class="tl-tbd-label">Dates TBD</div>
+          <div class="tl-tbd-label">—</div>
         </div>
       </td>
     </tr>`;
@@ -785,8 +785,11 @@ function renderTimeline(rows) {
         <tbody>${datedTbody}</tbody>
       </table>
     </div>
-    ${tbdTbody ? `<div style="border-top:1px solid #e2e5ea">
-      <table class="tl-table">
+    ${tbdTbody ? `<div style="border-top:3px solid #e2e5ea;background:#f9fafb">
+      <div style="padding:6px 12px 5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#9ca3af;border-bottom:1px solid #e2e5ea;background:#f1f3f6">
+        Dates TBD
+      </div>
+      <table class="tl-table" style="background:#f9fafb">
         <tbody>${tbdTbody}</tbody>
       </table>
     </div>` : ''}
