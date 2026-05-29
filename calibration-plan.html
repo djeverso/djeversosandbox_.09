@@ -154,9 +154,9 @@ body {
   left: 0;
   background: #f8f9fb;
   z-index: 10;
-  width: 230px;
-  min-width: 230px;
-  max-width: 230px;
+  width: 200px;
+  min-width: 200px;
+  max-width: 200px;
   font-size: 10px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.05em; color: #9ca3af;
   padding: 7px 12px;
@@ -203,9 +203,9 @@ body {
   left: 0;
   background: #fafafa;
   z-index: 5;
-  width: 230px;
-  min-width: 230px;
-  max-width: 230px;
+  width: 200px;
+  min-width: 200px;
+  max-width: 200px;
   padding: 6px 12px;
   font-size: 11px;
   border-right: 2px solid #e2e5ea;
@@ -677,9 +677,13 @@ function buildDataRow(r, start, end, minKey, totalMonths, chartWidth, todayX, gr
 
   return `<tr class="tl-data-row">
     <td class="tl-label-cell">
-      <div class="tl-label-product">${esc(label)}</div>
-      ${grade ? `<div class="tl-label-grade">${esc(grade)}</div>` : ''}
-      <div style="margin-top:2px">${renderPriorityPill(r.priority)}</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">
+        <div>
+          <div class="tl-label-product">${esc(label)}</div>
+          ${grade ? `<div class="tl-label-grade">${esc(grade)}</div>` : ''}
+        </div>
+        <div style="flex-shrink:0;margin-top:1px">${renderPriorityPill(r.priority)}</div>
+      </div>
     </td>
     <td class="tl-bar-td">
       <div class="tl-bar-row" style="width:${chartWidth}px">
@@ -751,9 +755,13 @@ function renderTimeline(rows) {
     const grade = r.grade_band || '';
     return `<tr class="tl-data-row">
       <td class="tl-label-cell" style="background:#f9fafb">
-        <div class="tl-label-product" style="color:#6b7280">${esc(label)}</div>
-        ${grade ? `<div class="tl-label-grade">${esc(grade)}</div>` : ''}
-        <div style="margin-top:2px">${renderPriorityPill(r.priority)}</div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">
+          <div>
+            <div class="tl-label-product" style="color:#6b7280">${esc(label)}</div>
+            ${grade ? `<div class="tl-label-grade">${esc(grade)}</div>` : ''}
+          </div>
+          <div style="flex-shrink:0;margin-top:1px">${renderPriorityPill(r.priority)}</div>
+        </div>
       </td>
       <td class="tl-bar-td" style="background:#f9fafb">
         <div class="tl-bar-row" style="width:${chartWidth}px">
