@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PK12 Item Calibration Tracking</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  background: #f4f6f9;
+  color: #1a1a2e;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+#page-header {
+  background: #1a1a2e;
+  color: #fff;
+  padding: 18px 28px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+#page-header h1 { font-size: 20px; font-weight: 700; }
+#page-header .subtitle { font-size: 12px; color: rgba(255,255,255,0.55); }
+.header-meta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+.header-badge {
+  font-size: 11px; background: rgba(255,255,255,0.12);
+  border-radius: 4px; padding: 2px 8px; color: rgba(255,255,255,0.8);
+}
+
+/* ── Toolbar ── */
+#toolbar {
+  background: #fff;
+  border-bottom: 1px solid #e2e5ea;
+  padding: 8px 28px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.filter-group { display: flex; align-items: center; gap: 5px; }
+.filter-label { font-size: 11px; color: #6b7280; white-space: nowrap; }
+.tb-sep { width: 1px; height: 18px; background: #e2e5ea; flex-shrink: 0; }
+
+.dd-wrapper { position: relative; }
+.dd-btn {
+  padding: 4px 10px; border-radius: 4px;
+  border: 1px solid #d1d5db; background: #fff;
+  color: #374151; cursor: pointer; font-size: 11px;
+  white-space: nowrap; min-width: 90px;
+}
+.dd-btn:hover { background: #f0f4ff; border-color: #93c5fd; }
+.dd-panel {
+  display: none; position: absolute; top: calc(100% + 3px); left: 0;
+  background: #fff; border: 1px solid #d1d5db; border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12); z-index: 300;
+  min-width: 200px; max-height: 260px; overflow-y: auto;
+}
+.dd-panel.open { display: block; }
+.dd-opt { display: flex; align-items: center; gap: 7px; padding: 5px 10px; cursor: pointer; font-size: 11px; }
+.dd-opt:hover { background: #f5f7ff; }
+.dd-opt input { cursor: pointer; margin: 0; }
+.dd-divider { height: 1px; background: #e5e7eb; margin: 3px 0; }
+
+/* ── View toggle ── */
+#view-toggle { display: flex; gap: 0; margin-left: auto; border: 1px solid #d1d5db; border-radius: 5px; overflow: hidden; }
+.view-btn {
+  padding: 4px 14px; background: #fff; border: none;
+  cursor: pointer; font-size: 11px; color: #374151;
+  transition: all 0.12s;
+}
+.view-btn + .view-btn { border-left: 1px solid #d1d5db; }
+.view-btn:hover { background: #f0f4ff; }
+.view-btn.active { background: #1a1a2e; color: #fff; }
+
+#result-count { font-size: 11px; color: #9ca3af; white-space: nowrap; }
+
+/* ── Pills ── */
+.pill {
+  font-size: 10px; font-weight: 600; padding: 2px 7px;
+  border-radius: 10px; white-space: nowrap; display: inline-block;
+}
+.pill-required   { background: #fee2e2; color: #dc2626; }
+.pill-bolstering { background: #fef3c7; color: #d97706; }
+.pill-gray  { background: #f3f4f6; color: #6b7280; }
+.pill-teal  { background: #ccfbf1; color: #0f766e; }
+
+/* ── Main content ── */
+#main-content { padding: 16px 28px 60px; }
+
+/* ── Flat table ── */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  text-align: left; font-size: 10px; font-weight: 700;
+  color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 6px 10px; white-space: nowrap; background: #fff;
+  border-bottom: 2px solid #e2e5ea;
+}
+.data-table td {
+  padding: 7px 10px; vertical-align: top;
+  border-bottom: 1px solid #f3f4f6; font-size: 12px;
+  background: #fff;
+}
+.data-table tr:hover td { background: #f8f9fb; }
+.data-table tr.priority-required  td:first-child { border-left: 3px solid #dc2626; }
+.data-table tr.priority-bolstering td:first-child { border-left: 3px solid #d97706; }
+
+.cell-title { font-weight: 600; font-size: 11px; color: #374151; max-width: 180px; line-height: 1.3; }
+.cell-notes { font-size: 11px; color: #6b7280; max-width: 320px; line-height: 1.4; }
+.cell-notes .full-text { display: none; }
+.cell-notes.expanded .short-text { display: none; }
+.cell-notes.expanded .full-text  { display: inline; }
+.expand-btn { color: #2563eb; font-size: 10px; cursor: pointer; text-decoration: underline; }
+.cell-date { white-space: nowrap; font-size: 11px; }
+.cell-date.has-date { color: #1a1a2e; }
+.cell-date.no-date  { color: #d1d5db; font-style: italic; }
+.date-tbd { color: #9ca3af; font-style: italic; }
+.recruit-yes   { color: #dc2626; font-weight: 700; }
+.recruit-no    { color: #9ca3af; }
+.recruit-tbd   { color: #d97706; font-style: italic; }
+.recruit-maybe { color: #d97706; font-weight: 600; }
+
+/* ── Timeline ── */
+#timeline-wrap {
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e2e5ea;
+  overflow: hidden;
+}
+/* Single scrollable container: label column sticky, chart scrolls right */
+.tl-scroll-container {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+.tl-table {
+  border-collapse: collapse;
+  min-width: 100%;
+}
+.tl-table td, .tl-table th {
+  padding: 0;
+  margin: 0;
+}
+.tl-header-label {
+  position: sticky;
+  left: 0;
+  background: #f8f9fb;
+  z-index: 10;
+  width: 230px;
+  min-width: 230px;
+  max-width: 230px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: #9ca3af;
+  padding: 7px 12px;
+  border-bottom: 2px solid #e2e5ea;
+  border-right: 2px solid #e2e5ea;
+  height: 32px;
+  vertical-align: middle;
+}
+.tl-header-chart {
+  background: #f8f9fb;
+  border-bottom: 2px solid #e2e5ea;
+  vertical-align: middle;
+  padding: 0;
+  white-space: nowrap;
+}
+.tl-month-cells {
+  display: flex;
+}
+.tl-month-cell {
+  flex-shrink: 0;
+  font-size: 10px; font-weight: 600; color: #6b7280;
+  padding: 7px 0; text-align: center;
+  border-left: 1px solid #e2e5ea;
+  white-space: nowrap;
+  user-select: none;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tl-month-cell.is-today-month {
+  background: #fef9ec;
+  color: #b45309;
+  font-weight: 700;
+}
+.tl-data-row {
+  border-bottom: 1px solid #f3f4f6;
+}
+.tl-data-row:last-child { border-bottom: none; }
+.tl-data-row:hover .tl-label-cell,
+.tl-data-row:hover .tl-bar-td { background: #f8f9fb; }
+.tl-label-cell {
+  position: sticky;
+  left: 0;
+  background: #fafafa;
+  z-index: 5;
+  width: 230px;
+  min-width: 230px;
+  max-width: 230px;
+  padding: 6px 12px;
+  font-size: 11px;
+  border-right: 2px solid #e2e5ea;
+  line-height: 1.3;
+  vertical-align: middle;
+}
+.tl-label-product { font-weight: 600; color: #1a1a2e; }
+.tl-label-grade   { font-size: 10px; color: #6b7280; }
+.tl-bar-td {
+  vertical-align: middle;
+  padding: 0;
+  background: #fff;
+}
+.tl-bar-row {
+  position: relative;
+  height: 42px;
+}
+.tl-grid-line {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: #e2e5ea;
+  pointer-events: none;
+}
+.tl-today-line {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: #ef4444;
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 4;
+}
+.tl-bar {
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+  height: 18px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: filter 0.1s;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  overflow: hidden;
+  white-space: nowrap;
+  min-width: 6px;
+  z-index: 2;
+}
+.tl-bar:hover { filter: brightness(1.12); z-index: 3; }
+.tl-bar.required   { background: #dc2626; }
+.tl-bar.bolstering { background: #d97706; }
+.tl-bar.tbd-bar    { background: #9ca3af; }
+.tl-bar.psycho-bar {
+  background: #7c3aed;
+  font-size: 9px;
+}
+.tl-tbd-label {
+  position: absolute;
+  left: 8px;
+  top: 50%; transform: translateY(-50%);
+  font-size: 10px; color: #9ca3af;
+  font-style: italic;
+}
+.tl-tbd-end-label {
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+  font-size: 9px; color: rgba(255,255,255,0.85);
+  font-style: italic;
+  font-weight: 400;
+  right: 4px;
+  pointer-events: none;
+}
+.tl-legend {
+  display: flex;
+  gap: 16px;
+  padding: 10px 14px;
+  border-top: 1px solid #e2e5ea;
+  font-size: 11px;
+  color: #6b7280;
+  background: #fafafa;
+  flex-wrap: wrap;
+}
+.tl-legend-item { display: flex; align-items: center; gap: 5px; }
+.tl-legend-swatch {
+  width: 14px; height: 10px; border-radius: 2px;
+  display: inline-block;
+}
+
+/* ── Tooltip ── */
+#tooltip {
+  display: none; position: fixed; z-index: 9999;
+  background: #1a1a2e; color: #fff; border-radius: 7px;
+  padding: 10px 14px; font-size: 11px; max-width: 360px;
+  line-height: 1.55; pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+#tooltip strong { display: block; margin-bottom: 5px; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 5px; }
+.tt-row { display: flex; gap: 8px; margin-bottom: 2px; }
+.tt-label { color: rgba(255,255,255,0.45); min-width: 80px; flex-shrink: 0; }
+
+/* ── Empty ── */
+.empty-state { text-align: center; padding: 60px 0; color: #9ca3af; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div id="page-header">
+  <h1>PK12 Item Calibration Tracking</h1>
+  <div class="subtitle">Live from Confluence — refreshed each run</div>
+  <div class="header-meta">
+    <span class="header-badge" id="generated-badge"></span>
+    <span class="header-badge" id="row-badge"></span>
+    <a class="header-badge" style="color:rgba(255,255,255,0.7);text-decoration:none"
+       href="https://illuminate.atlassian.net/wiki/spaces/CON/pages/19342884975/PK12+Item+Calibration+Tracking"
+       target="_blank">Open in Confluence ↗</a>
+  </div>
+</div>
+
+<div id="toolbar">
+  <div class="filter-group">
+    <span class="filter-label">Priority:</span>
+    <div class="dd-wrapper">
+      <button class="dd-btn" id="btn-priority">All ▾</button>
+      <div class="dd-panel" id="panel-priority"></div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">Table:</span>
+    <div class="dd-wrapper">
+      <button class="dd-btn" id="btn-title">All ▾</button>
+      <div class="dd-panel" id="panel-title"></div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">Product:</span>
+    <div class="dd-wrapper">
+      <button class="dd-btn" id="btn-product">All ▾</button>
+      <div class="dd-panel" id="panel-product"></div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">Platform:</span>
+    <div class="dd-wrapper">
+      <button class="dd-btn" id="btn-platform">All ▾</button>
+      <div class="dd-panel" id="panel-platform"></div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">Recruitment:</span>
+    <div class="dd-wrapper">
+      <button class="dd-btn" id="btn-recruitment">All ▾</button>
+      <div class="dd-panel" id="panel-recruitment"></div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <span id="result-count"></span>
+  <div id="view-toggle">
+    <button class="view-btn active" data-view="table">Table</button>
+    <button class="view-btn" data-view="timeline">Timeline</button>
+  </div>
+</div>
+
+<div id="main-content"></div>
+<div id="tooltip"></div>
+
+<script>
+const ALL_ROWS  = [{"priority":"Required","title":"Active Items in Dynamic Calibration Field Test (Winter-Summer 2026):","product":"SR PK12","grade_band":"1-8","item_count":"82","cal_start":"Jan 2026","cal_end":"6/30/26","recruitment":"No","platform":"SR Enterprise","notes":"via PIE (MCQ Non-Audio) G1=5, G2=14, G3=4, G5=9, G7=19, G8=31"},{"priority":"Required","title":"Active Items in Dynamic Calibration Field Test (Winter-Summer 2026):","product":"SR PK12","grade_band":"High School","item_count":"433","cal_start":"Jan 2026","cal_end":"6/30/26","recruitment":"No","platform":"SR Enterprise","notes":"via PIE (MCQ Non-Audio) G9=124, G10=110, G11=107, G12=92"},{"priority":"Required","title":"Active Items in Dynamic Calibration Field Test (Winter-Summer 2026):","product":"SL PK12","grade_band":"1-5","item_count":"209","cal_start":"4/6/26","cal_end":"6/30/2026","recruitment":"No","platform":"SL Enterprise","notes":"via PIE (MCQ Non-Audio) G1=8, G2=33, G3=61, G4=42, G5=65"},{"priority":"Required","title":"Active Items in Dynamic Calibration Field Test (Winter-Summer 2026):","product":"SM PK12","grade_band":"K, HS","item_count":"327","cal_start":"Jan 2026","cal_end":"","recruitment":"Maybe?","platform":"SM Enterprise","notes":"via PIE: HS=126 via KAS: GK=12; HS=272 All MC item types. GK is Annapolis-style (audio enabled)"},{"priority":"Required","title":"Items to Field Test BTS 2026:","product":"SR PK12","grade_band":"PK","item_count":"79","cal_start":"Fall 2026 with Pilot","cal_end":"","recruitment":"Yes","platform":"LSY","notes":"Items have audio. Ready for Field Testing 3 Hotspot, 65 MCQ, and 11 MultiSelect"},{"priority":"Required","title":"Items Ready to Field Test Pending Recruitment:","product":"SL PK12","grade_band":"K-3","item_count":"GK - 471 G1 - 296 G2 - 177 G3 - 73","cal_start":"TBD","cal_end":"","recruitment":"Yes","platform":"Fixed form","notes":"Top Priority SL PK12 Must happen first to get items on SRS scale. Items to calibrate include new CQT and LSY TEI, MCQ with Audio, SELS migrated to calibrate on SRS scaled score, and Operational SRS as anchor items."},{"priority":"Required","title":"Items Ready to Field Test Pending Recruitment:","product":"SL PK12","grade_band":"PK","item_count":"235","cal_start":"TBD","cal_end":"","recruitment":"Yes","platform":"Fixed form","notes":"Second Priority SL PK12 We need K students to take the PK items in Fall 2026 to be anchor items on the PK forms. PK forms must be taken in the spring by PK students per psychometrics. This means calibration will be in spring 27."},{"priority":"Required","title":"Star Reading Spanish","product":"","grade_band":"2-5","item_count":"118 (no audio)","cal_start":"TBD, still under development","cal_end":"","recruitment":"No","platform":"SL Enterprise","notes":"Not yet ready"},{"priority":"Required","title":"Star Reading Spanish","product":"","grade_band":"3-8","item_count":"410","cal_start":"TBD, still under development","cal_end":"","recruitment":"No","platform":"SL Enterprise","notes":"Not yet ready"},{"priority":"Required","title":"Star Reading Spanish","product":"","grade_band":"K-4","item_count":"118 (audio)","cal_start":"TBD, still under development","cal_end":"","recruitment":"tbd","platform":"tbd","notes":"Not yet ready"},{"priority":"Required","title":"Star Math English","product":"","grade_band":"K-2","item_count":"0","cal_start":"n/a","cal_end":"","recruitment":"No","platform":"","notes":"See &ldquo;bolster&rdquo; counts below."},{"priority":"Required","title":"Star Math English","product":"","grade_band":"HS","item_count":"0","cal_start":"n/a","cal_end":"","recruitment":"Recruit high performing students, dynamic calibration will cover the rest","platform":"","notes":"Technically, HS item bank could support new BP, but still skill gaps could lead to downstream reporting issues See &ldquo;bolster&rdquo; notes below."},{"priority":"Required","title":"Star Math English","product":"","grade_band":"PK","item_count":"420","cal_start":"Spring 26","cal_end":"","recruitment":"Yes","platform":"Fixed forms","notes":"Forms not built yet. Form creation with anchor items needs to be done in partnership with Psychometrics. Anchor items will come from the &lsquo;Annapolis&rsquo; items calibrated in 2025."},{"priority":"Bolstering","title":"Star Reading English","product":"SR PK12","grade_band":"PK","item_count":"38","cal_start":"TBD","cal_end":"TBD","recruitment":"Maybe","platform":"LSY","notes":"Items have audio. In development 38 CQT"},{"priority":"Bolstering","title":"Star Reading English","product":"SR PK12","grade_band":"K-2","item_count":"128","cal_start":"TBD","cal_end":"TBD","recruitment":"No","platform":"LSY","notes":"Items have audio. In development 36 ClozeAssociation, 51 MC, 41 CQT GK=58, G1=34, G2=36"},{"priority":"Bolstering","title":"Star Reading English","product":"SR PK12","grade_band":"3","item_count":"10","cal_start":"TBD","cal_end":"TBD","recruitment":"No","platform":"LSY","notes":"10 additional new OrderedList items not yet calibrated or scored via LSY"},{"priority":"Bolstering","title":"Star Reading English","product":"SR PK12","grade_band":"1-7","item_count":"229+","cal_start":"TBD","cal_end":"TBD","recruitment":"No","platform":"SRE","notes":"via PIE (no Audio) G1=2, G2=64, G3=49, G4=8, G5=32, G6=52, G7=22"},{"priority":"Bolstering","title":"Star Math","product":"","grade_band":"PK","item_count":"TBD","cal_start":"","cal_end":"","recruitment":"","platform":"","notes":"pending calibration results"},{"priority":"Bolstering","title":"Star Math","product":"","grade_band":"K","item_count":"12","cal_start":"Jan 2026","cal_end":"","recruitment":"","platform":"","notes":""},{"priority":"Bolstering","title":"Star Math","product":"","grade_band":"K-5","item_count":"287","cal_start":"","cal_end":"","recruitment":"","platform":"","notes":"calibrate items with audio enabled; tutorial for new item types PIE to determine if they can force on audio, if so we can dynamically calibrate using PIE"},{"priority":"Bolstering","title":"Star Math","product":"","grade_band":"6-8","item_count":"TBD","cal_start":"","cal_end":"","recruitment":"","platform":"","notes":"need to complete standards gap analysis on key states"},{"priority":"Bolstering","title":"Star Math","product":"","grade_band":"HS","item_count":"315","cal_start":"Jan 2026","cal_end":"","recruitment":"Recruit high performing students, dynamic calibration will cover the rest","platform":"","notes":"In dynamic calibration: 126 LSY item play via PIE 189 KAS"},{"priority":"Bolstering","title":"Star Math","product":"","grade_band":"HS","item_count":"170","cal_start":"tbd","cal_end":"","recruitment":"Recruit high performing students, dynamic calibration will cover the rest","platform":"","notes":"LSY New item type, pending due to tutorial questions; Content rec is no tutorial needed and push to dynamic PIE calibration Spring 2026"},{"priority":"Bolstering","title":"Star Math","product":"","grade_band":"HS","item_count":"15","cal_start":"tbd","cal_end":"","recruitment":"","platform":"","notes":"Graphing items. Need HS tutorial and item type is not yet supported in PIE."}];
+const GENERATED = '2026-05-29';
+
+const COL_LABELS = {
+  priority:'Priority', title:'Table / Section', product:'Product',
+  grade_band:'Grade Band', item_count:'Item Count',
+  cal_start:'Field Test Start Date', cal_end:'Field Test End Date',
+  recruitment:'Recruitment', platform:'Platform', notes:'Notes',
+};
+
+const ALL_COLS = ['priority','title','product','grade_band','item_count','cal_start','cal_end','recruitment','platform','notes'];
+
+// ── State ──────────────────────────────────────────────────────────────────
+const state = {
+  view: 'table',
+  priority: new Set(), title: new Set(), product: new Set(),
+  platform: new Set(), recruitment: new Set(),
+};
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function uniq(arr) { return [...new Set(arr.filter(Boolean))].sort(); }
+
+// ── Date parsing for timeline (fuzzy, season/quarter-aware) ───────────────
+const MON = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+
+// Strip non-date verbiage: keep only the first recognizable date fragment
+function extractDatePart(s) {
+  if (!s) return s;
+  // Try to isolate up to the first non-date word after a date keyword
+  // Remove anything after "with", "and", "for", parentheses, etc.
+  return s.replace(/\s+(with|and|for|–|—|\(|\/\/|incl|including|per|as)\b.*/i, '').trim();
+}
+
+function parseTimelineDate(raw, isEnd) {
+  if (!raw) return null;
+  const s = extractDatePart(raw);
+  const lc = s.toLowerCase().trim();
+  if (!lc || lc.includes('tbd') || lc.includes('n/a') || lc.includes('still under') || lc === '—') return null;
+
+  // Extract year from string (use 2026 as fallback)
+  const yrMatch = lc.match(/\b(20\d{2})\b/);
+  const yr = yrMatch ? +yrMatch[1] : 2026;
+  const yr2match = lc.match(/\b(\d{2})\b/);
+  const yr2 = yr2match ? 2000 + +yr2match[1] : yr;
+
+  // Season / quarter keywords — different mappings for start vs end
+  const START_SEASONS = {
+    fall:6, bts:6, winter:0, spring:-1, pm1:6, pm2:0, boy:6, moy:0, eoy:2, pm3:2,
+  };
+  // month index (0-based) for start dates
+  const START_MONTH_MAP = {
+    fall:8, bts:8, winter:12, spring:1, pm1:8, pm2:12, boy:8, moy:12, eoy:4, pm3:4,
+  };
+  // month index (1-based) for end dates
+  const END_MONTH_MAP = {
+    fall:11, bts:11, winter:2, spring:5, pm1:9, pm2:2, boy:9, moy:2, eoy:4, pm3:5,
+  };
+
+  // Check season/quarter keywords
+  for (const [kw, mo] of Object.entries(isEnd ? END_MONTH_MAP : START_MONTH_MAP)) {
+    if (lc.includes(kw)) {
+      const finalYr = (isEnd && mo <= 2 && lc.includes('winter')) ? yr : yr;
+      return { year: finalYr, month: mo };
+    }
+  }
+
+  // Named month: "Jan 2026" / "January 2026"
+  const mn = lc.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*[\s,]+(\d{2,4})\b/);
+  if (mn) {
+    const y = mn[2].length === 2 ? 2000 + +mn[2] : +mn[2];
+    return { year: y, month: MON[mn[1]] };
+  }
+  // "MM/DD/YY" or "MM/DD/YYYY"
+  const sl = lc.match(/(\d{1,2})\/\d{1,2}\/(\d{2,4})/);
+  if (sl) {
+    const y = sl[2].length === 2 ? 2000 + +sl[2] : +sl[2];
+    return { year: y, month: +sl[1] };
+  }
+  // Bare year
+  if (lc.match(/^\d{4}$/)) return { year: +lc, month: isEnd ? 12 : 1 };
+
+  return null;
+}
+
+function monthKey(y, m) { return y * 12 + m; }
+function keyToYM(k)      { const m = k % 12; return { year: Math.floor(k / 12), month: m === 0 ? 12 : m }; }
+const MONTH_NAMES = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// ── Dropdowns ─────────────────────────────────────────────────────────────
+function buildDropdown(btnId, panelId, items, stateKey) {
+  const panel = document.getElementById(panelId);
+  const btn   = document.getElementById(btnId);
+  panel.innerHTML = '';
+  const allId  = `${panelId}-all`;
+  const allDiv = document.createElement('div');
+  allDiv.className = 'dd-opt';
+  allDiv.innerHTML = `<input type="checkbox" id="${allId}" checked><label for="${allId}"><strong>All</strong></label>`;
+  panel.appendChild(allDiv);
+  panel.appendChild(Object.assign(document.createElement('div'), {className:'dd-divider'}));
+  items.forEach((item, i) => {
+    const d = document.createElement('div'); d.className = 'dd-opt';
+    const uid = `${panelId}-${i}`;
+    d.innerHTML = `<input type="checkbox" id="${uid}" value="${esc(item)}" checked><label for="${uid}">${esc(item)}</label>`;
+    panel.appendChild(d);
+  });
+  function sync() {
+    const checked = [...panel.querySelectorAll('input[value]:checked')].map(c => c.value);
+    state[stateKey] = checked.length === items.length ? new Set() : new Set(checked);
+    btn.textContent = state[stateKey].size === 0 ? 'All ▾' : `${checked.length} selected ▾`;
+    render();
+  }
+  const allChk = panel.querySelector('#' + allId);
+  allChk.addEventListener('change', () => {
+    panel.querySelectorAll('input[value]').forEach(c => c.checked = allChk.checked);
+    sync();
+  });
+  panel.querySelectorAll('input[value]').forEach(c => c.addEventListener('change', () => {
+    allChk.checked = [...panel.querySelectorAll('input[value]')].every(c => c.checked);
+    sync();
+  }));
+  btn.addEventListener('click', e => { e.stopPropagation(); panel.classList.toggle('open'); });
+  panel.addEventListener('click', e => e.stopPropagation());
+}
+
+document.addEventListener('click', () =>
+  document.querySelectorAll('.dd-panel').forEach(p => p.classList.remove('open'))
+);
+
+function initDropdowns() {
+  buildDropdown('btn-priority',    'panel-priority',    uniq(ALL_ROWS.map(r=>r.priority)),    'priority');
+  buildDropdown('btn-title',       'panel-title',       uniq(ALL_ROWS.map(r=>r.title)),       'title');
+  buildDropdown('btn-product',     'panel-product',     uniq(ALL_ROWS.map(r=>r.product)),     'product');
+  buildDropdown('btn-platform',    'panel-platform',    uniq(ALL_ROWS.map(r=>r.platform)),    'platform');
+  buildDropdown('btn-recruitment', 'panel-recruitment', uniq(ALL_ROWS.map(r=>r.recruitment)), 'recruitment');
+}
+initDropdowns();
+
+// ── View toggle ────────────────────────────────────────────────────────────
+document.querySelectorAll('.view-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.view = btn.dataset.view;
+    render();
+  });
+});
+
+// ── Filter ─────────────────────────────────────────────────────────────────
+function applyFilters() {
+  return ALL_ROWS.filter(r => {
+    if (state.priority.size    > 0 && !state.priority.has(r.priority))       return false;
+    if (state.title.size       > 0 && !state.title.has(r.title))             return false;
+    if (state.product.size     > 0 && !state.product.has(r.product))         return false;
+    if (state.platform.size    > 0 && !state.platform.has(r.platform))       return false;
+    if (state.recruitment.size > 0 && !state.recruitment.has(r.recruitment)) return false;
+    return true;
+  });
+}
+
+// ── Cell renderers ─────────────────────────────────────────────────────────
+function renderPriorityPill(p) {
+  if (!p) return '';
+  const cls = p === 'Required' ? 'pill-required' : p === 'Bolstering' ? 'pill-bolstering' : 'pill-gray';
+  return `<span class="pill ${cls}">${esc(p)}</span>`;
+}
+function renderDate(d) {
+  if (!d) return `<span class="cell-date no-date">—</span>`;
+  const lc = d.toLowerCase();
+  if (lc.includes('tbd') || lc.includes('n/a') || lc.includes('still under'))
+    return `<span class="cell-date date-tbd">${esc(d)}</span>`;
+  return `<span class="cell-date has-date">${esc(d)}</span>`;
+}
+function renderRecruitment(r) {
+  if (!r) return `<span class="recruit-no">—</span>`;
+  const lc = r.toLowerCase();
+  if (lc === 'yes')                        return `<span class="recruit-yes">Yes ✓</span>`;
+  if (lc === 'no')                         return `<span class="recruit-no">No</span>`;
+  if (lc === 'maybe' || lc === 'maybe?')  return `<span class="recruit-maybe">Maybe?</span>`;
+  if (lc === 'tbd')                        return `<span class="recruit-tbd">TBD</span>`;
+  return `<span class="recruit-maybe">${esc(r)}</span>`;
+}
+function renderNotes(notes, rowIdx) {
+  if (!notes) return '';
+  const MAX = 120;
+  if (notes.length <= MAX) return `<div class="cell-notes">${esc(notes)}</div>`;
+  const short = notes.substring(0, MAX).trim();
+  return `<div class="cell-notes" id="notes-${rowIdx}">
+    <span class="short-text">${esc(short)}… <span class="expand-btn" onclick="toggleNotes(${rowIdx})">more</span></span>
+    <span class="full-text">${esc(notes)} <span class="expand-btn" onclick="toggleNotes(${rowIdx})">less</span></span>
+  </div>`;
+}
+function toggleNotes(idx) {
+  const el = document.getElementById(`notes-${idx}`);
+  if (el) el.classList.toggle('expanded');
+}
+
+// ── Flat table renderer ────────────────────────────────────────────────────
+function renderTable(rows) {
+  const cols = ALL_COLS;
+  const thead = `<thead><tr>${cols.map(c =>
+    `<th>${esc(COL_LABELS[c] || c)}</th>`
+  ).join('')}</tr></thead>`;
+
+  const tbody = rows.map((r, idx) => {
+    const prCls = r.priority === 'Required' ? 'priority-required'
+                : r.priority === 'Bolstering' ? 'priority-bolstering' : '';
+    const cells = cols.map(c => {
+      let val = '';
+      switch (c) {
+        case 'priority':    val = renderPriorityPill(r.priority); break;
+        case 'title':       val = `<div class="cell-title">${esc(r.title)}</div>`; break;
+        case 'product':     val = r.product ? `<span class="pill pill-gray">${esc(r.product)}</span>` : ''; break;
+        case 'grade_band':  val = esc(r.grade_band); break;
+        case 'item_count':  val = esc(r.item_count); break;
+        case 'cal_start':   val = renderDate(r.cal_start); break;
+        case 'cal_end':     val = renderDate(r.cal_end); break;
+        case 'recruitment': val = renderRecruitment(r.recruitment); break;
+        case 'platform':    val = r.platform ? `<span class="pill pill-teal">${esc(r.platform)}</span>` : '<span style="color:#d1d5db">—</span>'; break;
+        case 'notes':       val = renderNotes(r.notes, idx); break;
+        default:            val = esc(r[c] || '');
+      }
+      return `<td>${val}</td>`;
+    }).join('');
+    return `<tr class="${prCls}">${cells}</tr>`;
+  }).join('');
+
+  return `<div style="background:#fff;border-radius:8px;border:1px solid #e2e5ea;overflow:auto">
+    <table class="data-table">${thead}<tbody>${tbody}</tbody></table>
+  </div>`;
+}
+
+// ── Timeline renderer ──────────────────────────────────────────────────────
+const MONTH_PX = 144;
+const TODAY    = new Date();
+const TODAY_KEY = monthKey(TODAY.getFullYear(), TODAY.getMonth() + 1);
+
+// 3 weeks ≈ 0.75 months in pixel terms
+const PSYCHO_MONTHS = 0.75;
+
+function renderTimeline(rows) {
+  // Parse start/end for each row using timeline-specific fuzzy parser
+  const parsedRows = rows.map(r => ({
+    r,
+    start: parseTimelineDate(r.cal_start, false),
+    end:   parseTimelineDate(r.cal_end,   true),
+  }));
+
+  // Determine date range
+  let minKey = monthKey(TODAY.getFullYear(), TODAY.getMonth()) - 1;
+  let maxKey = monthKey(TODAY.getFullYear() + 1, TODAY.getMonth() + 1);
+
+  parsedRows.forEach(({start, end}) => {
+    if (start) minKey = Math.min(minKey, monthKey(start.year, start.month) - 1);
+    if (end)   maxKey = Math.max(maxKey, monthKey(end.year, end.month) + 2);
+  });
+  if (maxKey - minKey < 12) maxKey = minKey + 12;
+
+  const totalMonths = maxKey - minKey + 1;
+  const chartWidth  = totalMonths * MONTH_PX;
+
+  // Today line x position
+  const todayFrac = (TODAY_KEY - minKey + TODAY.getDate() / 31) / totalMonths;
+  const todayX    = todayFrac * chartWidth;
+
+  // Month header HTML
+  let monthHeaderHtml = '<div class="tl-month-cells">';
+  for (let k = minKey; k <= maxKey; k++) {
+    const {year, month} = keyToYM(k);
+    const isToday = k === TODAY_KEY;
+    const label   = month === 1 || k === minKey
+      ? `${MONTH_NAMES[month]} ${year}` : MONTH_NAMES[month];
+    monthHeaderHtml += `<div class="tl-month-cell${isToday ? ' is-today-month' : ''}" style="width:${MONTH_PX}px">${label}</div>`;
+  }
+  monthHeaderHtml += '</div>';
+
+  // Build table rows
+  let tbodyHtml = '';
+
+  parsedRows.forEach(({r, start, end}) => {
+    const label  = r.product || r.title;
+    const grade  = r.grade_band || '';
+    const barCls = r.priority === 'Required' ? 'required' : 'bolstering';
+
+    // Grid lines + today line
+    let gridHtml = '';
+    for (let k = minKey; k <= maxKey; k++) {
+      const x = (k - minKey) * MONTH_PX;
+      gridHtml += `<div class="tl-grid-line" style="left:${x}px"></div>`;
+    }
+    gridHtml += `<div class="tl-today-line" style="left:${todayX.toFixed(1)}px"></div>`;
+
+    let barHtml = '';
+
+    if (!start && !end) {
+      barHtml = `<div class="tl-tbd-label">Dates TBD</div>`;
+    } else {
+      // Positions
+      const sk = start ? monthKey(start.year, start.month) : null;
+      const ek = end   ? monthKey(end.year,   end.month)   : null;
+
+      let leftPx, rightPx;
+
+      if (sk !== null && ek !== null) {
+        leftPx  = ((sk - minKey) / totalMonths) * chartWidth;
+        rightPx = (((ek - minKey) + 1) / totalMonths) * chartWidth;
+      } else if (sk !== null) {
+        // Start only — extend ~4 months
+        leftPx  = ((sk - minKey) / totalMonths) * chartWidth;
+        rightPx = (((sk - minKey) + 4) / totalMonths) * chartWidth;
+      } else {
+        // End only — 1-month wide dot at end position
+        leftPx  = (((ek - minKey)) / totalMonths) * chartWidth;
+        rightPx = (((ek - minKey) + 1) / totalMonths) * chartWidth;
+      }
+
+      const widthPx   = Math.max(rightPx - leftPx, 8);
+      const rowIdx    = ALL_ROWS.indexOf(r);
+      const hasTbdEnd = !end && start;
+
+      const barParts = [r.product, r.grade_band, r.item_count].filter(Boolean);
+      const labelText = widthPx > 48 ? esc(barParts.join(' · ')) : '';
+      barHtml += `<div class="tl-bar ${barCls}"
+        style="left:${leftPx.toFixed(1)}px;width:${widthPx.toFixed(1)}px"
+        data-idx="${rowIdx}"
+        onmouseenter="showTipRow(event,${rowIdx})"
+        onmouseleave="hideTip()">${labelText}${hasTbdEnd ? '<span class="tl-tbd-end-label">tbd end</span>' : ''}</div>`;
+
+      // Always show purple Psy Calibration Analysis bar (3 weeks after end)
+      const analysisStart = ek !== null ? rightPx : rightPx;
+      const analysisWidth = PSYCHO_MONTHS * MONTH_PX;
+      if (ek !== null || hasTbdEnd) {
+        const anaLabel = analysisWidth > 36 ? 'Cal Analysis' : '';
+        barHtml += `<div class="tl-bar psycho-bar"
+          style="left:${rightPx.toFixed(1)}px;width:${analysisWidth.toFixed(1)}px"
+          onmouseenter="showTipPsycho(event)"
+          onmouseleave="hideTip()">${esc(anaLabel)}</div>`;
+      }
+    }
+
+    tbodyHtml += `<tr class="tl-data-row">
+      <td class="tl-label-cell">
+        <div class="tl-label-product">${esc(label)}</div>
+        ${grade ? `<div class="tl-label-grade">${esc(grade)}</div>` : ''}
+        <div style="margin-top:2px">${renderPriorityPill(r.priority)}</div>
+      </td>
+      <td class="tl-bar-td">
+        <div class="tl-bar-row" style="width:${chartWidth}px">
+          ${gridHtml}${barHtml}
+        </div>
+      </td>
+    </tr>`;
+  });
+
+  return `<div id="timeline-wrap">
+    <div class="tl-scroll-container">
+      <table class="tl-table">
+        <thead>
+          <tr>
+            <th class="tl-header-label">Item</th>
+            <th class="tl-header-chart"><div style="width:${chartWidth}px">${monthHeaderHtml}</div></th>
+          </tr>
+        </thead>
+        <tbody>${tbodyHtml}</tbody>
+      </table>
+    </div>
+    <div class="tl-legend">
+      <div class="tl-legend-item"><div class="tl-legend-swatch" style="background:#dc2626;border-radius:2px"></div> Required</div>
+      <div class="tl-legend-item"><div class="tl-legend-swatch" style="background:#d97706;border-radius:2px"></div> Bolstering</div>
+      <div class="tl-legend-item"><div class="tl-legend-swatch" style="background:#7c3aed;border-radius:2px"></div> est. Psy Calibration Analysis</div>
+      <div class="tl-legend-item"><div style="width:2px;height:12px;background:#ef4444;display:inline-block;border-radius:1px"></div> Today</div>
+      <div style="margin-left:auto;font-size:10px;color:#9ca3af">Seasons mapped to calendar dates &nbsp;|&nbsp; Gray extension = TBD end date (~4 mo estimate)</div>
+    </div>
+  </div>`;
+}
+
+// ── Tooltip helpers ────────────────────────────────────────────────────────
+function buildTooltipHtml(r) {
+  const lines = [
+    `<strong>${esc(r.product || r.title)} — ${esc(r.grade_band)}</strong>`,
+    `<div class="tt-row"><span class="tt-label">Table</span><span>${esc(r.title)}</span></div>`,
+    `<div class="tt-row"><span class="tt-label">Priority</span><span>${esc(r.priority)}</span></div>`,
+    `<div class="tt-row"><span class="tt-label">Item Count</span><span>${esc(r.item_count||'—')}</span></div>`,
+    `<div class="tt-row"><span class="tt-label">FT Start</span><span>${esc(r.cal_start||'—')}</span></div>`,
+    `<div class="tt-row"><span class="tt-label">FT End</span><span>${esc(r.cal_end||'—')}</span></div>`,
+    `<div class="tt-row"><span class="tt-label">Platform</span><span>${esc(r.platform||'—')}</span></div>`,
+    `<div class="tt-row"><span class="tt-label">Recruitment</span><span>${esc(r.recruitment||'—')}</span></div>`,
+    r.notes ? `<div class="tt-row" style="margin-top:4px"><span class="tt-label">Notes</span><span style="max-width:240px;white-space:normal">${esc(r.notes.substring(0,160))}${r.notes.length>160?'…':''}</span></div>` : '',
+  ].filter(Boolean).join('');
+  return lines;
+}
+
+const tip = document.getElementById('tooltip');
+function showTipRow(e, idx) {
+  const r = ALL_ROWS[idx];
+  if (!r) return;
+  tip.innerHTML = buildTooltipHtml(r);
+  tip.style.display = 'block';
+  moveTip(e);
+}
+function showTipPsycho(e) {
+  tip.innerHTML = 'Estimated 3 weeks for psychometric calibration analysis, if started after field test ends.';
+  tip.style.display = 'block';
+  moveTip(e);
+}
+function moveTip(e) {
+  const x = Math.min(e.clientX + 14, window.innerWidth  - tip.offsetWidth  - 10);
+  const y = Math.min(e.clientY + 14, window.innerHeight - tip.offsetHeight - 10);
+  tip.style.left = x + 'px';
+  tip.style.top  = y + 'px';
+}
+function hideTip() { tip.style.display = 'none'; }
+document.addEventListener('mousemove', e => { if (tip.style.display !== 'none') moveTip(e); });
+
+// ── Main render ────────────────────────────────────────────────────────────
+function render() {
+  const rows = applyFilters();
+  document.getElementById('result-count').textContent = `${rows.length} row${rows.length !== 1 ? 's' : ''}`;
+
+  const content = document.getElementById('main-content');
+  if (!rows.length) {
+    content.innerHTML = '<div class="empty-state">No rows match the current filters.</div>';
+    return;
+  }
+  content.innerHTML = state.view === 'timeline' ? renderTimeline(rows) : renderTable(rows);
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+document.getElementById('generated-badge').textContent = `Generated ${GENERATED}`;
+document.getElementById('row-badge').textContent       = `${ALL_ROWS.length} rows across ${new Set(ALL_ROWS.map(r=>r.title)).size} tables`;
+render();
+</script>
+</body>
+</html>
