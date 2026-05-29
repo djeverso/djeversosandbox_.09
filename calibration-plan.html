@@ -627,7 +627,11 @@ function renderTimeline(rows) {
   })).sort((a, b) => {
     const aHas = a.start || a.end ? 0 : 1;
     const bHas = b.start || b.end ? 0 : 1;
-    return aHas - bHas;
+    if (aHas !== bHas) return aHas - bHas;
+    // Both have dates: sort by start date descending (most recent first)
+    const aKey = a.start ? monthKey(a.start.year, a.start.month) : (a.end ? monthKey(a.end.year, a.end.month) : 0);
+    const bKey = b.start ? monthKey(b.start.year, b.start.month) : (b.end ? monthKey(b.end.year, b.end.month) : 0);
+    return bKey - aKey;
   });
 
   // Determine date range
