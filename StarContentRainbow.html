@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Star Content 2025-26 Gantt</title>
+<title>Star Content Gantt</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; background: #f0f2f5; color: #1a1a2e; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
@@ -39,6 +39,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; f
 .roadmap-btn { padding: 3px 9px; border-radius: 3px; border: 1px solid rgba(167,139,250,0.6); background: rgba(167,139,250,0.15); color: #c4b5fd; cursor: pointer; font-size: 11px; white-space: nowrap; transition: background 0.15s; }
 .roadmap-btn:hover { background: rgba(167,139,250,0.28); }
 .roadmap-btn.active { background: rgba(167,139,250,0.35); border-color: #c4b5fd; outline: 2px solid #c4b5fd; outline-offset: 1px; }
+.live-roadmap-btn { padding: 3px 9px; border-radius: 3px; border: 1px solid rgba(52,211,153,0.6); background: rgba(52,211,153,0.15); color: #6ee7b7; cursor: pointer; font-size: 11px; white-space: nowrap; transition: background 0.15s; }
+.live-roadmap-btn:hover { background: rgba(52,211,153,0.28); }
+.live-roadmap-btn.active { background: rgba(52,211,153,0.35); border-color: #6ee7b7; outline: 2px solid #6ee7b7; outline-offset: 1px; }
 .filter-group { display: flex; align-items: center; gap: 4px; }
 .filter-group > .filter-label { margin-right: 0; }
 .ctrl-locked { opacity: 0.38; pointer-events: none; }
@@ -167,6 +170,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; f
   <div class="toolbar-sep"></div>
   <button class="shortcut-btn" id="content-teams-btn">Rainbow</button>
   <button class="roadmap-btn" id="roadmap-btn">Roadmap</button>
+  <button class="live-roadmap-btn" id="live-roadmap-btn">Live Roadmap</button>
   <div class="toolbar-sep"></div>
   <label id="deps-toggle"><input type="checkbox" id="deps-check"> Dependencies</label>
   <span id="updated-label">Updated 2026-09-03</span>
@@ -326,7 +330,7 @@ function renderHeader() {
 
 // ── State ─────────────────────────────────────────────────────
 const THIS_YEAR = new Date().getFullYear();
-const state = { levelMax: 3, owners: new Set(), programs: new Set(), initiatives: new Set(), projects: new Set(), years: new Set([THIS_YEAR]), quarters: new Set(), sprints: new Set(), showDeps: false, swimlane: false, roadmapMode: false };
+const state = { levelMax: 3, owners: new Set(), programs: new Set(), initiatives: new Set(), projects: new Set(), years: new Set([THIS_YEAR]), quarters: new Set(), sprints: new Set(), showDeps: false, swimlane: false, roadmapMode: false, liveRoadmapMode: false };
 const LEVEL_OPTIONS = [ {label:'1–2', max:2}, {label:'1–3', max:3}, {label:'1–4', max:4}, {label:'All', max:99} ];
 
 // ── Unique values ─────────────────────────────────────────────
@@ -536,7 +540,7 @@ buildDropdown('init-panel', 'init-all', allInitiatives, updateInitiativeState);
 buildDropdown('proj-panel', 'proj-all', allProjects,    updateProjectState);
 buildDropdown('owner-panel','own-all',  allOwners,      updateOwnerState);
 
-// Build Program dropdown — only Jira checked by default
+// Build Program dropdown — Jira + Roadmap checked by default (Live Roadmap view)
 (function() {
   const panel = document.getElementById('tp-panel');
   panel.innerHTML = '';
@@ -548,7 +552,7 @@ buildDropdown('owner-panel','own-all',  allOwners,      updateOwnerState);
   allPrograms.forEach((item, i) => {
     const d = document.createElement('div'); d.className = 'dd-opt';
     const id = `tp-all-${i}`;
-    const checked = isJiraProgram(item) ? ' checked' : '';
+    const checked = (isJiraProgram(item) || isRoadmapProgram(item)) ? ' checked' : '';
     d.innerHTML = `<input type="checkbox" id="${id}" value="${escHtml(item)}"${checked}><label for="${id}">${escHtml(item)}</label>`;
     panel.appendChild(d);
   });
@@ -570,7 +574,7 @@ buildDropdown('owner-panel','own-all',  allOwners,      updateOwnerState);
     allChk.indeterminate = anyU && anyC;
     updateProgramState();
   }));
-  // Sync initial state: programs = only Jira
+  // Sync initial state: programs = Jira + Roadmap
   const checked = [...panel.querySelectorAll('input[value]:checked')].map(c => c.value);
   const total   = [...panel.querySelectorAll('input[value]')].length;
   state.programs = checked.length === total ? new Set() : new Set(checked);
@@ -828,6 +832,9 @@ function applyFilters() {
       if (r.lvl === 0 || r.lvl > state.levelMax) return false;
     }
     if (state.programs.size > 0 && !state.programs.has(r.program)) return false;
+    // Live Roadmap: hide Roadmap | Planned rows that already have a Jira key —
+    // those are duplicates of what's already shown under Jira | Issues.
+    if (state.liveRoadmapMode && isRoadmapProgram(r.program) && r.jiraLink) return false;
     if (state.initiatives.size > 0 && !state.initiatives.has(r.initiative)) return false;
     if (state.projects.size > 0 && !state.projects.has(r.project)) return false;
     if (state.owners.size > 0 && !state.owners.has(r.groupOwner)) return false;
@@ -1190,61 +1197,107 @@ function renderDeps(rows) {
 })();
 
 // ── Roadmap mode button ───────────────────────────────────────
-(function() {
-  const btn = document.getElementById('roadmap-btn');
-  btn.addEventListener('click', () => {
-    state.roadmapMode = !state.roadmapMode;
-    btn.classList.toggle('active', state.roadmapMode);
+function setRoadmapMode(active) {
+  state.roadmapMode = active;
+  document.getElementById('roadmap-btn').classList.toggle('active', active);
 
-    const lvlGroup   = document.getElementById('lvl-group');
-    const tpWrapper  = document.getElementById('tp-wrapper');
-    const initWrapper= document.getElementById('init-wrapper');
-    const projWrapper= document.getElementById('proj-wrapper');
+  const lvlGroup   = document.getElementById('lvl-group');
+  const tpWrapper  = document.getElementById('tp-wrapper');
 
-    if (state.roadmapMode) {
-      // Lock Levels and Program only; Initiative and Project stay interactive
-      lvlGroup.classList.add('ctrl-locked');
-      tpWrapper.classList.add('ctrl-locked');
+  if (active) {
+    // Roadmap mode and Live Roadmap mode both drive the Program filter —
+    // only one can be active at a time.
+    if (state.liveRoadmapMode) setLiveRoadmapMode(false);
 
-      // Override state.programs to the roadmap program so the existing cascade
-      // functions (rebuildInitiativeDropdown, rebuildProjectDropdown) scope correctly
-      const roadmapProgram = allPrograms.find(p => isRoadmapProgram(p)) || '';
-      state.programs = roadmapProgram ? new Set([roadmapProgram]) : new Set();
-      document.getElementById('tp-btn').textContent = 'Roadmap | Planned ▾';
+    // Lock Levels and Program only; Initiative and Project stay interactive
+    lvlGroup.classList.add('ctrl-locked');
+    tpWrapper.classList.add('ctrl-locked');
 
-      // Rebuild Initiative and Project dropdowns via the normal cascade
-      rebuildInitiativeDropdown();
-      rebuildProjectDropdown();
+    // Override state.programs to the roadmap program so the existing cascade
+    // functions (rebuildInitiativeDropdown, rebuildProjectDropdown) scope correctly
+    const roadmapProgram = allPrograms.find(p => isRoadmapProgram(p)) || '';
+    state.programs = roadmapProgram ? new Set([roadmapProgram]) : new Set();
+    document.getElementById('tp-btn').textContent = 'Roadmap | Planned ▾';
 
-      // Set year to current year, quarters to all
-      const yrPanel = document.getElementById('yr-panel');
-      yrPanel.querySelectorAll('input[value]').forEach(c => { c.checked = +c.value === THIS_YEAR; });
-      updateYearState();
-      const qtrPanel = document.getElementById('qtr-panel');
-      qtrPanel.querySelectorAll('input[value]').forEach(c => { c.checked = true; });
-      qtrPanel.querySelector('#qtr-all').checked = true;
-      qtrPanel.querySelector('#qtr-all').indeterminate = false;
-      updateQuarterState();
+    // Rebuild Initiative and Project dropdowns via the normal cascade
+    rebuildInitiativeDropdown();
+    rebuildProjectDropdown();
 
-      renderHeader();
-      render();
-      requestAnimationFrame(() => {
-        const todayX = activeX(today);
-        if (todayX != null) rightPanel.scrollLeft = Math.max(0, todayX - rightPanel.offsetWidth / 2);
-      });
-    } else {
-      // Unlock Levels and Program
-      lvlGroup.classList.remove('ctrl-locked');
-      tpWrapper.classList.remove('ctrl-locked');
+    // Set year to current year, quarters to all
+    const yrPanel = document.getElementById('yr-panel');
+    yrPanel.querySelectorAll('input[value]').forEach(c => { c.checked = +c.value === THIS_YEAR; });
+    updateYearState();
+    const qtrPanel = document.getElementById('qtr-panel');
+    qtrPanel.querySelectorAll('input[value]').forEach(c => { c.checked = true; });
+    qtrPanel.querySelector('#qtr-all').checked = true;
+    qtrPanel.querySelector('#qtr-all').indeterminate = false;
+    updateQuarterState();
 
-      // Restore program state from the panel checkboxes (which were never changed)
-      // and cascade-rebuild initiative/project dropdowns.
-      // renderHeader() must run first so sprint mode is active before render().
-      renderHeader();
-      updateProgramState();
-    }
-  });
-})();
+    renderHeader();
+    render();
+    requestAnimationFrame(() => {
+      const todayX = activeX(today);
+      if (todayX != null) rightPanel.scrollLeft = Math.max(0, todayX - rightPanel.offsetWidth / 2);
+    });
+  } else {
+    // Unlock Levels and Program
+    lvlGroup.classList.remove('ctrl-locked');
+    tpWrapper.classList.remove('ctrl-locked');
+
+    // Restore program state from the panel checkboxes (which were never changed)
+    // and cascade-rebuild initiative/project dropdowns.
+    // renderHeader() must run first so sprint mode is active before render().
+    renderHeader();
+    updateProgramState();
+  }
+}
+document.getElementById('roadmap-btn').addEventListener('click', () => {
+  setRoadmapMode(!state.roadmapMode);
+});
+
+// ── Live Roadmap mode button ───────────────────────────────────
+// Shows every Jira | Issues row plus only the Roadmap | Planned rows that
+// do NOT yet have a Jira key (i.e. still Backlog/Approved) — once a Roadmap
+// item enters Jira, the Jira | Issues copy is the system of record and the
+// Roadmap | Planned entry is hidden here to avoid showing it twice.
+function setLiveRoadmapMode(active) {
+  state.liveRoadmapMode = active;
+  document.getElementById('live-roadmap-btn').classList.toggle('active', active);
+
+  const tpWrapper = document.getElementById('tp-wrapper');
+
+  if (active) {
+    // Roadmap mode and Live Roadmap mode both drive the Program filter —
+    // only one can be active at a time.
+    if (state.roadmapMode) setRoadmapMode(false);
+
+    // Lock Program only; Levels stay interactive (default 1–3, drillable)
+    tpWrapper.classList.add('ctrl-locked');
+
+    const jiraProgram    = allPrograms.find(p => isJiraProgram(p)) || '';
+    const roadmapProgram = allPrograms.find(p => isRoadmapProgram(p)) || '';
+    state.programs = new Set([jiraProgram, roadmapProgram].filter(Boolean));
+    document.getElementById('tp-btn').textContent = 'Live Roadmap ▾';
+
+    // Rebuild Initiative and Project dropdowns via the normal cascade
+    rebuildInitiativeDropdown();
+    rebuildProjectDropdown();
+
+    render();
+  } else {
+    // Unlock Program and restore it to "all programs shown"
+    tpWrapper.classList.remove('ctrl-locked');
+    const panel = document.getElementById('tp-panel');
+    panel.querySelectorAll('input[value]').forEach(c => { c.checked = true; });
+    const allChk = panel.querySelector('#tp-all');
+    allChk.checked = true;
+    allChk.indeterminate = false;
+    updateProgramState();
+  }
+}
+document.getElementById('live-roadmap-btn').addEventListener('click', () => {
+  setLiveRoadmapMode(!state.liveRoadmapMode);
+});
 
 // ── Tooltip ───────────────────────────────────────────────────
 const tooltip = document.getElementById('tooltip');
@@ -1336,7 +1389,8 @@ function escHtml(s) {
 }
 
 // ── Init ──────────────────────────────────────────────────────
-render();
+// Live Roadmap is the default view; setLiveRoadmapMode(true) renders for us.
+setLiveRoadmapMode(true);
 requestAnimationFrame(() => {
   const todayX = activeX(today);
   if (todayX != null) rightPanel.scrollLeft = Math.max(0, todayX - rightPanel.offsetWidth / 2);
