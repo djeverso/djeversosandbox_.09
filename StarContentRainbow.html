@@ -844,10 +844,21 @@ function applyFilters() {
     return true;
   });
 
+  // Hide a Lvl 2 row under "Roadmap | Planned" if none of its Lvl 3 children
+  // survived filtering — applies in every view (Live Roadmap, Roadmap, with
+  // or without Rainbow), not just Live Roadmap's own Jira-dedup rule.
+  const visibleRoadmapProducts = new Set(
+    raw.filter(r => r.lvl === 3 && isRoadmapProgram(r.program)).map(r => r.initiative)
+  );
+  const pruned = raw.filter(r => {
+    if (r.lvl === 2 && isRoadmapProgram(r.program) && !visibleRoadmapProducts.has(r.primary)) return false;
+    return true;
+  });
+
   // Partition into normal sections and pinned sections (JIRA second-to-last, Roadmap last)
-  const normalRows = raw.filter(r => pinnedOrder(r) === 0);
-  const jiraRows   = raw.filter(r => pinnedOrder(r) === 1);
-  const roadmapRows= raw.filter(r => pinnedOrder(r) === 2);
+  const normalRows = pruned.filter(r => pinnedOrder(r) === 0);
+  const jiraRows   = pruned.filter(r => pinnedOrder(r) === 1);
+  const roadmapRows= pruned.filter(r => pinnedOrder(r) === 2);
 
   filteredRows = [...normalRows, ...jiraRows, ...roadmapRows];
   filteredRows.forEach((r, i) => r._vi = i);
