@@ -947,9 +947,19 @@ function buildDisplayRows(filtered) {
   }
   const display = [];
   TEAM_ORDER.forEach(team => {
-    const teamRows = filtered.filter(r => {
+    let teamRows = filtered.filter(r => {
       const parts = (r.groupOwner || '').split(/[,\/]/).map(s => s.trim());
       return parts.includes(team);
+    });
+    // A Roadmap | Planned Lvl 2 header's own Group Owner can be a stale/rolled-up
+    // value from Process 6, so it can match a team lane even when none of its
+    // Lvl 3 children actually landed in that lane. Only keep it here if one did.
+    const teamRoadmapProducts = new Set(
+      teamRows.filter(r => r.lvl === 3 && isRoadmapProgram(r.program)).map(r => r.initiative)
+    );
+    teamRows = teamRows.filter(r => {
+      if (r.lvl === 2 && isRoadmapProgram(r.program) && !teamRoadmapProducts.has(r.primary)) return false;
+      return true;
     });
     if (teamRows.length === 0) return;
     display.push({ _isHeader: true, _team: team, _color: OWNER_COLORS[team] || '#94a3b8' });
